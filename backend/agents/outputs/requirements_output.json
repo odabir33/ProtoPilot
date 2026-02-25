@@ -1,1 +1,58 @@
+{
+  "project_name": "AI Product Requirements Generator",
+  "problem_statement": "Product teams often start with vague ideas and spend significant time manually converting them into structured requirements documents. This causes ambiguity, delays, and inconsistent documentation quality.",
+  "target_users": [
+    "Product managers",
+    "Startup founders",
+    "Student project teams",
+    "Business analysts"
+  ],
+  "goals": [
+    "Convert high-level product ideas into structured requirements",
+    "Reduce ambiguity in early-stage requirement gathering",
+    "Generate reusable requirement outputs for downstream artifact generation",
+    "Improve documentation consistency across projects"
+  ],
+  "non_goals": [
+    "Replacing human product managers in final decision making",
+    "Generating production-ready source code",
+    "Performing detailed UI mockup design in the initial version"
+  ],
+  "functional_requirements": [
+    "Users can input a high-level product idea in natural language",
+    "The system asks iterative clarification questions to resolve ambiguities",
+    "The system captures target users, goals, scope, constraints, and assumptions",
+    "The system outputs structured requirements in JSON format",
+    "Users can review and refine requirements through multiple rounds",
+    "The system stores the final JSON output for downstream artifact generation"
+  ],
+  "non_functional_requirements": {
+    "performance": "The system should return a clarification response within 5 seconds for typical prompts and generate final JSON within 10 seconds under normal load.",
+    "security": "User inputs and generated requirements must be handled securely and API keys must not be exposed in client-side code.",
+    "scalability": "The system should support multiple concurrent users in a classroom or team demo setting.",
+    "availability": "The system should be available during demo sessions and recover gracefully from API failures."
+  },
+  "core_entities": [
+    "ProjectIdea",
+    "ClarificationQuestion",
+    "RequirementDraft",
+    "FinalRequirementsJSON",
+    "UserSession"
+  ],
+  "assumptions": [
+    "Users provide enough information to answer clarification questions",
+    "The LLM can produce valid JSON with prompt constraints",
+    "The initial version uses a single requirements schema for all projects"
+  ],
+  "constraints": [
+    "MVP must be completed within the course project timeline",
+    "The system uses Google ADK with LiteLLM integration",
+    "The current requirements schema is fixed for MVP artifact generation"
+  ],
+  "open_questions": [
+    "Should the system support domain-specific requirement templates (e.g., e-commerce, healthcare)?",
+    "Should user authentication be included in the MVP?",
+    "How should requirement versioning and edit history be handled?"
+  ]
+}
 
