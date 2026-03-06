@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
@@ -57,13 +59,19 @@ class ArtefactsAgentExecutor:
     def run(self, export_pdf: bool = False) -> Dict[str, Path]:
         data = self._load_and_normalize(self.paths.input_json)
 
+        saved: Dict[str, Path] = {}
+
+        er_mmd_path, er_png_path = self.generate_and_render_er(data)
+        saved["er.mmd"] = er_mmd_path
+        if er_png_path:
+            saved["er.png"] = er_png_path
+
         artefacts = {
             "requirements_summary.md": self.generate_requirements_summary(data),
             "user_stories.md": self.generate_user_stories(data),
             "scope_constraints.md": self.generate_scope_constraints(data),
         }
 
-        saved: Dict[str, Path] = {}
         for filename, content in artefacts.items():
             path = self._save_text(filename, content)
             saved[filename] = path
@@ -72,17 +80,20 @@ class ArtefactsAgentExecutor:
         if export_pdf and not REPORTLAB_AVAILABLE:
             print("[WARN] reportlab is not installed. Skipping PDF export.")
             export_pdf = False
-
+    
         if export_pdf:
             for _, md_path in list(saved.items()):
                 if md_path.suffix.lower() == ".md":
                     pdf_name = md_path.stem + ".pdf"
                     pdf_path = self.paths.output_dir / pdf_name
+                # img = er_png_path if (er_png_path and md_path.stem == "requirements_summary") else None
+                # self._export_text_to_pdf(md_path.read_text(encoding="utf-8"), pdf_path, image_path=img)
+
                     self._export_text_to_pdf(md_path.read_text(encoding="utf-8"), pdf_path)
                     saved[pdf_name] = pdf_path
 
         return saved
-
+    
     # ----------------------------
     # Loading / Validation
     # ----------------------------
@@ -331,3 +342,85 @@ class ArtefactsAgentExecutor:
         if current:
             out.append(current)
         return out
+    
+    def generate_er_mermaid(self, data: dict) -> str:
+    # """
+    # MVP: entity-only Mermaid ER diagram generated from core_entities.
+    # """
+        entities = data.get("core_entities", []) or []
+
+        lines = ["erDiagram"]
+        if not entities:
+            lines.append("  EMPTY_ENTITY {")
+            lines.append("    string placeholder")
+            lines.append("  }")
+            return "\n".join(lines)
+
+        for e in entities:
+            name = str(e).strip()
+            if not name:
+                continue
+
+            # Mermaid entity name normalization
+            safe = name.upper().replace(" ", "_").replace("-", "_")
+            safe = "".join(ch for ch in safe if ch.isalnum() or ch == "_")
+            if not safe:
+                continue
+
+            lines.append(f"  {safe} {{")
+            # No attributes available in current schema, keep a placeholder
+            lines.append("    string id")
+            lines.append("  }")
+
+        return "\n".join(lines)
+
+
+    def save_er_mermaid_file(self, data: dict, filename: str = "er.mmd") -> Path:
+        """
+        Save Mermaid ER diagram source to output_dir/er.mmd
+        """
+        mmd = self.generate_er_mermaid(data)
+        path = self.paths.output_dir / filename
+        path.write_text(mmd, encoding="utf-8")
+        return path
+
+    def render_mermaid_to_png(self, mmd_path: Path, png_path: Path) -> bool:
+    # """
+    # Auto-render Mermaid (.mmd) to PNG using mermaid-cli (mmdc).
+    # Returns True if rendered successfully; False otherwise.
+    # """
+        mmdc_path = shutil.which("mmdc")
+        if not mmdc_path:
+            print("[WARN] mmdc (mermaid-cli) not found. Skip ER auto-render.")
+            print("       Install: npm install -g @mermaid-js/mermaid-cli")
+            return False
+
+        try:
+            # --quiet reduces logs; remove if you want verbose output
+            subprocess.run(
+                [mmdc_path, "-i", str(mmd_path), "-o", str(png_path), "--quiet"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            return True
+        except subprocess.CalledProcessError as e:
+            print("[WARN] Mermaid render failed. Skip ER image.")
+            if e.stdout:
+                print("stdout:", e.stdout[:500])
+            if e.stderr:
+                print("stderr:", e.stderr[:500])
+            return False
+
+
+    def generate_and_render_er(self, data: dict) -> tuple[Path, Path | None]:
+    # """
+    # 1) generate outputs/er.mmd
+    # 2) auto-render to outputs/er.png (if mmdc installed)
+    # Returns (er.mmd path, er.png path or None)
+    # """
+        er_mmd_path = self.save_er_mermaid_file(data, filename="er.mmd")
+        er_png_path = self.paths.output_dir / "er.png"
+
+        ok = self.render_mermaid_to_png(er_mmd_path, er_png_path)
+        return er_mmd_path, (er_png_path if ok and er_png_path.exists() else None)
