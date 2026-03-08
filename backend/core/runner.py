@@ -2,6 +2,7 @@ import os
 from google.adk.runners import Runner
 from google.genai import types
 from core.sessions import session_service
+import uuid
 
 async def run_turn(agent, session_id: str, message: str) -> str:
     user_id = os.getenv("USER_ID", "local-user")
@@ -27,6 +28,7 @@ async def run_turn(agent, session_id: str, message: str) -> str:
     runner = Runner(agent=agent, app_name=app_name, session_service=session_service)
 
     chunks: list[str] = []
+
     async for event in runner.run_async(
         user_id=user_id,
         session_id=session.id,
@@ -38,3 +40,9 @@ async def run_turn(agent, session_id: str, message: str) -> str:
                     chunks.append(part.text)
 
     return "".join(chunks).strip()
+
+
+
+async def run_once(agent, message: str) -> str:
+    temp_session_id = f"job-{uuid.uuid4().hex[:12]}"
+    return await run_turn(agent, session_id=temp_session_id, message=message)

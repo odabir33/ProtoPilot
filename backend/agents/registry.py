@@ -1,9 +1,10 @@
-from typing import Awaitable, Callable
+from typing import Callable, Any
+from agents.requirements_gathering_agent.agent import create_agent as create_req_agent
+from agents.artefacts_generation_agent.agent import create_agent as create_art_agent
 
-ChatFn = Callable[[str, str], Awaitable[str]]  # (session_id, message) -> reply
+AgentFactory = Callable[..., Any]  # llm + optional kwargs -> LlmAgent
 
-from agents.requirements_gathering_agent.run import chat as requirements_chat
-
-AGENT_CHAT: dict[str, ChatFn] = {
-    "requirements": requirements_chat,
+AGENT_FACTORIES: dict[str, AgentFactory] = {
+    "requirements": create_req_agent,
+    "artifacts": create_art_agent,
 }
