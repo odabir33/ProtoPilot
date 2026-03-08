@@ -1,24 +1,20 @@
-from google.adk.agents import Agent
-from google.adk.models.lite_llm import LiteLlm
+from google.genai import types
+from google.adk.agents import LlmAgent
 from .instructions import ARTEFACTS_GENERATION_AGENT_INSTRUCTIONS
-import os
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-    GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-except ImportError:
-    print("Warning: python-dotenv not installed. Ensure API key is set")
-    GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-
-custom_model = LiteLlm(
-    model="groq/llama-3.3-70b-versatile",
-    api_key=GROQ_API_KEY
-)
-
-root_agent = Agent(
-    model=custom_model,
-    name="artefacts_generation_agent",
-    description="Generates project artefacts from structured requirements JSON",
-    instruction=ARTEFACTS_GENERATION_AGENT_INSTRUCTIONS,
-)
+def create_agent(llm, tools=None, phase: str = "non_tech") -> LlmAgent:
+    phase_instruction = (
+        f"\n\nCurrent phase: {phase}\n"
+        "Current project_id is provided in user message context.\n"
+    )
+    return LlmAgent(
+        model=llm,
+        name="artifacts_agent",
+        description="Generate MVP artifacts from requirements JSON",
+        instruction=ARTEFACTS_GENERATION_AGENT_INSTRUCTIONS + phase_instruction,
+        tools=tools or [],
+        generate_content_config=types.GenerateContentConfig(
+            temperature=0.2,          
+            max_output_tokens=12288,
+        ),
+    )
