@@ -41,6 +41,7 @@
               [disabled]="isLoading() || !answer">
         {{ isLoading() ? 'Thinking...' : 'Next' }}
       </button>
+      <button class="next-btn" (click)="complete()">Complete</button>
     </div>
 
   </div>

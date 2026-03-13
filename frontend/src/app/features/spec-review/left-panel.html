@@ -1,0 +1,11 @@
+<div class="sidebar">
+
+  <h3>Specification</h3>
+
+  <ul>
+    @for (section of sections; track section) {
+      <li [class.active]="section === selectedSection" (click)="selectSection(section)">{{ toTitleCase(section) }}</li>
+    }
+  </ul>
+
+</div>
