@@ -6,6 +6,7 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #334155;
+  font-family: 'Inter', sans-serif;
 }
 
 .header h1 {
