@@ -18,3 +18,9 @@ def create_litellm(oauth_token: str) -> LiteLlm:
             "x-litellm-api-key": litellm_api_key,
         },
     )
+
+    # Groq LLM for testing, not used in production
+    # return LiteLlm(
+    #     model="groq/llama-3.3-70b-versatile",
+    #     api_key=os.environ.get("GROQ_API_KEY")
+    # )
