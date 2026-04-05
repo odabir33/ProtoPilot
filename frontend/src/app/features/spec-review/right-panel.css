@@ -3,6 +3,14 @@
   background: #1e293b;
   color: #f1f5f9;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.spec-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 20px;
 }
 
 section {
@@ -75,4 +83,33 @@ textarea {
   box-sizing: border-box;
   font-family: inherit;
   resize: vertical;
+}
+
+.chat-section {
+  flex-shrink: 0;
+  margin-top: 20px;
+  padding: 16px;
+  background: green;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+.chat-section h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #f1f5f9;
+}
+
+.markdown-container {
+  background: white;
+  color: black;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.chat-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
 }

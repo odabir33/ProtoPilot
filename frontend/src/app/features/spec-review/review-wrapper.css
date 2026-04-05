@@ -24,14 +24,28 @@
   font-size: 16px;
 }
 
-.approve-btn:hover {
+.header div {
+  display: flex;
+  gap: 10px;
+}
+
+.preview-btn {
   background: #4f46e5;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.preview-btn:hover {
+  background: #3730a3;
 }
 
 .container {
   display: grid;
-  grid-template-columns: 260px 1fr;
-  height: calc(100vh - 80px); /* Adjust for header height */
+  grid-template-columns: 260px 1fr 360px;
   background: #0f172a;
   color: #f1f5f9;
   font-family: 'Inter', sans-serif;

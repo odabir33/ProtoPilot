@@ -1,11 +1,12 @@
 import { JsonPipe } from '@angular/common';
-import { Component, Input, OnChanges } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, inject, Input, OnChanges } from '@angular/core';
+import { FormsModule } from '@angular/forms';import { MarkdownModule } from 'ngx-markdown';import { WizardService } from '../requirements/services/wizard-service';
+import { catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-right-panel',
   standalone: true,
-  imports: [FormsModule, JsonPipe],
+  imports: [FormsModule, JsonPipe, MarkdownModule],
   templateUrl: './right-panel.html',
   styleUrl: './right-panel.css'
 })
@@ -13,11 +14,17 @@ export class RightPanelComponent implements OnChanges {
 
   @Input() spec: any;
   @Input() selectedSection: string = '';
+  @Input() mdText: string = '';
+  @Input() isPreviewMode: boolean = false;
 
   isEditing: boolean = false;
   editedValue: string = '';
   editedArray: string[] = [];
   editedObjects: any[] = [];
+  chatMessage: string = '';
+  wizardService = inject(WizardService);
+
+  constructor() {}
 
   ngOnChanges() {
     this.isEditing = false;
@@ -113,6 +120,21 @@ export class RightPanelComponent implements OnChanges {
 
   removeObject(index: number) {
     this.editedObjects.splice(index, 1);
+  }
+
+  sendChatMessage() {
+    if (this.chatMessage) {
+      this.wizardService.sendMessage(this.chatMessage).pipe(catchError(err => {
+                console.log('Error caught:', err);
+                return of(null); // fallback value
+              })).subscribe(response => {
+        if (response) {
+          // Update spec based on response
+          console.log('Response received: ' + JSON.stringify(response));
+        }
+        this.chatMessage = '';
+      });
+    }
   }
 
 }

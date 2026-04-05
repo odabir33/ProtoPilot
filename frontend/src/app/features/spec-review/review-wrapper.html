@@ -1,19 +1,38 @@
 <div class="header">
   <h1>Specification Review</h1>
-  <button class="approve-btn" (click)="approveSpec()">Approve Specification</button>
+  <div>
+    <button class="approve-btn" (click)="approveSpec()">Approve Specification</button>
+    <button class="preview-btn" (click)="togglePreview()">{{ isPreviewMode() ? 'Edit' : 'Preview' }}</button>
+  </div>
 </div>
 
-<div class="container">
+@if (!isPreviewMode()) {
+  <div class="container">
 
-  <app-left-panel
-    [spec]="spec"
-    [selectedSection]="selectedSection"
-    (sectionSelected)="onSectionSelect($event)">
-  </app-left-panel>
+    <app-left-panel
+      [spec]="spec"
+      [selectedSection]="selectedSection"
+      (sectionSelected)="onSectionSelect($event)">
+    </app-left-panel>
 
-  <app-right-panel
-    [spec]="spec"
-    [selectedSection]="selectedSection">
-  </app-right-panel>
+    <app-right-panel
+      [spec]="spec"
+      [selectedSection]="selectedSection">
+    </app-right-panel>
+    <app-chatbox>    </app-chatbox>
+  </div>
+} @else {
+  <div class="container">
 
-</div>
+    <app-left-panel
+      [files]="['requirements.md', 'architecture.md', 'api.md']"
+      [selectedFile]="selectedFile"
+      (fileSelected)="onFileSelect($event)">
+    </app-left-panel>
+    <app-right-panel
+      [mdText]="getMdText(selectedFile)"
+      [isPreviewMode]="true">
+    </app-right-panel>
+
+  </div>
+}

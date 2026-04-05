@@ -10,7 +10,10 @@ export class LeftPanelComponent {
 
   @Input() spec: any;
   @Input() selectedSection: string = '';
+  @Input() files: string[] = [];
+  @Input() selectedFile: string = '';
   @Output() sectionSelected = new EventEmitter<string>();
+  @Output() fileSelected = new EventEmitter<string>();
 
   get sections(): string[] {
     return Object.keys(this.spec);
@@ -18,6 +21,10 @@ export class LeftPanelComponent {
 
   selectSection(section: string) {
     this.sectionSelected.emit(section);
+  }
+
+  selectFile(file: string) {
+    this.fileSelected.emit(file);
   }
 
   toTitleCase(str: string): string {

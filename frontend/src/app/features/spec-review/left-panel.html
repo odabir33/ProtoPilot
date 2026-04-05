@@ -1,10 +1,16 @@
 <div class="sidebar">
 
-  <h3>Specification</h3>
+  <h3>{{ files.length > 0 ? 'Files' : 'Specification' }}</h3>
 
   <ul>
-    @for (section of sections; track section) {
-      <li [class.active]="section === selectedSection" (click)="selectSection(section)">{{ toTitleCase(section) }}</li>
+    @if (files.length > 0) {
+      @for (file of files; track file) {
+        <li [class.active]="file === selectedFile" (click)="selectFile(file)">{{ file }}</li>
+      }
+    } @else {
+      @for (section of sections; track section) {
+        <li [class.active]="section === selectedSection" (click)="selectSection(section)">{{ toTitleCase(section) }}</li>
+      }
     }
   </ul>
 
