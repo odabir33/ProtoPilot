@@ -41,12 +41,12 @@ class Orchestrator:
             proj = get_or_create_project(project_id, req_session_id)
             return self._build_response(
                 proj=proj,
-                reply="You have entered revision mode. Please enter the points to be modified.",
+                reply='{"message": "You have entered revision mode. Please enter the points to be modified."}',
                 artifacts_md=proj.nontech_artifacts_md,
             )
         return self._build_response(
             proj=proj,
-            reply="approve or change",
+            reply='{"message": "approve or change"}',
             artifacts_md=proj.nontech_artifacts_md,
         )
 
@@ -92,7 +92,7 @@ class Orchestrator:
 
         return self._build_response(
             proj=proj,
-            reply="NEXT: Code Generation / QA。",
+            reply='{"message": "NEXT: Code Generation / QA。"}',
         )
 
     async def _run_artifacts_non_tech(self, llm, project_id: str, req_session_id: str) -> dict:
@@ -105,11 +105,11 @@ class Orchestrator:
         )
         raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)
-        reply = (
-            "Non-technical artifacts saved."
+        reply = '{"message": ' + (
+            '"Non-technical artifacts saved."'
             if proj.stage == Stage.WAIT_APPROVAL
-            else "Artifacts generation did not complete tool save."
-        )
+            else '"Artifacts generation did not complete tool save."'
+        ) + '}'
         return self._build_response(
             proj=proj,
             reply=reply,
@@ -126,11 +126,11 @@ class Orchestrator:
         )
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-tech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)
-        reply = (
-            "Technical artifacts saved."
+        reply = '{"message": ' + (
+            '"Technical artifacts saved."'
             if proj.stage in {Stage.CODEGEN, Stage.QA}
-            else "Technical artifacts generation did not complete tool save."
-        )
+            else '"Technical artifacts generation did not complete tool save."'
+        ) + '}'
         return self._build_response(
             proj=proj,
             reply=reply,
