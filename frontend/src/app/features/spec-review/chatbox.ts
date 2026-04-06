@@ -15,8 +15,8 @@ export class ChatboxComponent implements OnInit {
   wizardService = inject(WizardService);
   chatHistory = signal<[{ id: number, text: string, type: string }] | any>([]);
   chatMessage: string = '';
-  sendBtnDisabled = signal<boolean>(true);
-  sendBtnText = signal<string>("Thinking...");
+  sendBtnDisabled = signal<boolean>(false);
+  sendBtnText = signal<string>("Send");
   @Input() isPreviewMode: boolean = false;
 
   constructor() { }
