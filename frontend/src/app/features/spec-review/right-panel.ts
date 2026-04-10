@@ -1,6 +1,7 @@
 import { JsonPipe } from '@angular/common';
 import { Component, inject, Input, OnChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';import { MarkdownModule } from 'ngx-markdown';import { WizardService } from '../requirements/services/wizard-service';
+import { SpecService } from './services/spec.service';
 import { catchError, of } from 'rxjs';
 
 @Component({
@@ -12,7 +13,6 @@ import { catchError, of } from 'rxjs';
 })
 export class RightPanelComponent implements OnChanges {
 
-  @Input() spec: any;
   @Input() selectedSection: string = '';
   @Input() mdText: string = '';
   @Input() isPreviewMode: boolean = false;
@@ -23,15 +23,16 @@ export class RightPanelComponent implements OnChanges {
   editedObjects: any[] = [];
   chatMessage: string = '';
   wizardService = inject(WizardService);
+  specService = inject(SpecService);
 
   constructor() {}
 
-  ngOnChanges() {
-    this.isEditing = false;
+  get selectedData() {
+    return this.specService.spec()[this.selectedSection];
   }
 
-  get selectedData() {
-    return this.spec[this.selectedSection];
+  ngOnChanges() {
+    this.isEditing = false;
   }
 
   get isStringArray(): boolean {
@@ -83,16 +84,16 @@ export class RightPanelComponent implements OnChanges {
       const isObjectArray = this.isObjectArray;
       const isObject = this.isObject;
 
-      if (isString) {
-        this.spec[this.selectedSection] = this.editedValue;
+        if (isString) {
+        this.specService.updateSection(this.selectedSection, this.editedValue);
       } else if (isStringArray) {
-        this.spec[this.selectedSection] = this.editedArray;
+        this.specService.updateSection(this.selectedSection, this.editedArray);
       } else if (isObjectArray) {
-        this.spec[this.selectedSection] = this.editedObjects;
+        this.specService.updateSection(this.selectedSection, this.editedObjects);
       } else if (isObject) {
-        this.spec[this.selectedSection] = this.editedObjects[0];
+        this.specService.updateSection(this.selectedSection, this.editedObjects[0]);
       } else {
-        this.spec[this.selectedSection] = JSON.parse(this.editedValue);
+        this.specService.updateSection(this.selectedSection, JSON.parse(this.editedValue));
       }
       this.isEditing = false;
     } catch (e) {

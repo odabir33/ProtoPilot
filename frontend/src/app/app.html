@@ -1,6 +1,6 @@
 @if (currentView === 'wizard') {
   <app-wizard (onComplete)="onWizardComplete($event)" />
 } @else {
-  <app-review-wrapper [spec]="spec" />
+  <app-review-wrapper />
 }
 <router-outlet />

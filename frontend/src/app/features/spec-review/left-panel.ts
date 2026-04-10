@@ -1,4 +1,5 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, inject, Input, Output, EventEmitter } from '@angular/core';
+import { SpecService } from './services/spec.service';
 
 @Component({
   selector: 'app-left-panel',
@@ -8,12 +9,16 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 })
 export class LeftPanelComponent {
 
-  @Input() spec: any;
+  private specService = inject(SpecService);
   @Input() selectedSection: string = '';
   @Input() files: string[] = [];
   @Input() selectedFile: string = '';
   @Output() sectionSelected = new EventEmitter<string>();
   @Output() fileSelected = new EventEmitter<string>();
+
+  get spec() {
+    return this.specService.spec();
+  }
 
   get sections(): string[] {
     return Object.keys(this.spec);

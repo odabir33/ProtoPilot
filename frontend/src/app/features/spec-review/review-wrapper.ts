@@ -1,39 +1,45 @@
-import { Component, inject, Input, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { LeftPanelComponent } from './left-panel';
 import { RightPanelComponent } from './right-panel';
 import { WizardService } from '../requirements/services/wizard-service';
-import { catchError, map, of } from 'rxjs';
+import { SpecService } from './services/spec.service';
+import { catchError, of } from 'rxjs';
 import { ChatboxComponent } from './chatbox';
+import { LivePreviewComponent } from './components/live-preview/live-preview.component';
 
 
 @Component({
   selector: 'app-review-wrapper',
   standalone: true,
-  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent],
+  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent, LivePreviewComponent],
   templateUrl: './review-wrapper.html',
   styleUrl: './review-wrapper.css'
 })
 export class ReviewWrapperComponent implements OnInit {
 
-  @Input() spec: any = {};
   selectedSection: string = '';
   isPreviewMode = signal(false);
   selectedFile: string = 'requirements.md';
 
   http = inject(HttpClient);
   wizardService = inject(WizardService);
+  specService = inject(SpecService);
+
+  get spec() {
+    return this.specService.spec();
+  }
 
   ngOnInit() {
     if (Object.keys(this.spec).length === 0) {
       this.http.get('/assets/temp_reqs.json').subscribe({
         next: (data) => {
-          this.spec = data;
-          this.selectedSection = Object.keys(this.spec)[0];
+          this.specService.setSpec(data);
+          this.selectedSection = Object.keys(this.specService.spec())[0];
         },
         error: () => {
-          this.spec = this.tempReqs;
-          this.selectedSection = Object.keys(this.spec)[0];
+          this.specService.setSpec(this.tempReqs);
+          this.selectedSection = Object.keys(this.specService.spec())[0];
         }
       });
     } else {
@@ -97,8 +103,6 @@ export class ReviewWrapperComponent implements OnInit {
   }
 
   approveSpec() {
-    // alert('Specification approved!');
-    // Here you could emit an event to the parent or perform other actions
     let message = "Here are the final edited specs: " + JSON.stringify(this.spec);
     this.wizardService.sendMessage("change").pipe(catchError(err => {
       console.log('Error caught:', err);
@@ -109,6 +113,17 @@ export class ReviewWrapperComponent implements OnInit {
         return of(null); // fallback value
       })).subscribe((reply) => {
         console.log(reply);
+        if ((reply as any).spec) {
+          this.specService.setSpec((reply as any).spec);
+
+          //approve specs
+          this.wizardService.sendMessage("approve").pipe(catchError(err => {
+            console.log('Error caught:', err);
+            return of(null); // fallback value
+          })).subscribe((reply) => {
+            console.log(reply);
+          })
+        }
       })
     })
   }

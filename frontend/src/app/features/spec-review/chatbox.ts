@@ -1,6 +1,7 @@
-import { Component, inject, input, Input, OnInit, Output, signal } from '@angular/core';
+import { Component, inject, Input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms'; import { MarkdownModule } from 'ngx-markdown';
 import { WizardService } from '../requirements/services/wizard-service';
+import { SpecService } from './services/spec.service';
 import { catchError, of } from 'rxjs';
 
 @Component({
@@ -13,6 +14,7 @@ import { catchError, of } from 'rxjs';
 export class ChatboxComponent implements OnInit {
 
   wizardService = inject(WizardService);
+  specService = inject(SpecService);
   chatHistory = signal<[{ id: number, text: string, type: string }] | any>([]);
   chatMessage: string = '';
   sendBtnDisabled = signal<boolean>(false);
@@ -42,10 +44,12 @@ export class ChatboxComponent implements OnInit {
             return of(null); // fallback value
           })).subscribe(response => {
             if (response) {
-              // Update spec based on response
+              if ((response as any).spec) {
+                this.specService.setSpec((response as any).spec);
+              }
               this.sendBtnDisabled.set(false);
               this.sendBtnText.set("Send");
-              console.log('Response received: ' + JSON.stringify(response));
+              console.log('Response received: ', response);
               this.chatHistory.update((prev) => [...prev, { type: "system", text: JSON.stringify(response.reply), id: prev.length + 1 }]);
             }
           });

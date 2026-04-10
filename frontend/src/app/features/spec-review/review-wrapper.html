@@ -7,16 +7,14 @@
 </div>
 
 @if (!isPreviewMode()) {
-  <div class="container">
+    <div class="container">
 
     <app-left-panel
-      [spec]="spec"
       [selectedSection]="selectedSection"
       (sectionSelected)="onSectionSelect($event)">
     </app-left-panel>
 
     <app-right-panel
-      [spec]="spec"
       [selectedSection]="selectedSection">
     </app-right-panel>
     <app-chatbox>    </app-chatbox>
@@ -34,5 +32,8 @@
       [isPreviewMode]="true">
     </app-right-panel>
 
+  </div>
+  <div class="preview-container">
+    <app-live-preview></app-live-preview>
   </div>
 }

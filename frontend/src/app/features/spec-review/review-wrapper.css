@@ -50,3 +50,10 @@
   color: #f1f5f9;
   font-family: 'Inter', sans-serif;
 }
+
+.preview-container {
+  height: calc(100vh - 70px);
+  padding: 20px;
+  background: #0f172a;
+  overflow: auto;
+}

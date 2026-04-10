@@ -47,6 +47,7 @@ export class WizardComponent implements OnInit {
       console.log('Error caught:', err);
       return of(null); // fallback value
     }), map((res: Response | null) => {
+      console.log("Response received: ", res);
       if (res?.spec?.project_name) {
         return res.spec;
       } else if (res?.reply?.suggestions) {
