@@ -7,6 +7,7 @@ import { SpecService } from './services/spec.service';
 import { catchError, of } from 'rxjs';
 import { ChatboxComponent } from './chatbox';
 import { LivePreviewComponent } from './components/live-preview/live-preview.component';
+import { LoaderService } from '../../shared/services/loader.service';
 
 
 @Component({
@@ -21,10 +22,12 @@ export class ReviewWrapperComponent implements OnInit {
   selectedSection: string = '';
   isPreviewMode = signal(false);
   selectedFile: string = 'requirements.md';
+  files = signal<string[]>([]);
 
   http = inject(HttpClient);
   wizardService = inject(WizardService);
   specService = inject(SpecService);
+  loaderService = inject(LoaderService);
 
   get spec() {
     return this.specService.spec();
@@ -103,6 +106,7 @@ export class ReviewWrapperComponent implements OnInit {
   }
 
   approveSpec() {
+    this.loaderService.start();
     let message = "Here are the final edited specs: " + JSON.stringify(this.spec);
     this.wizardService.sendMessage("change").pipe(catchError(err => {
       console.log('Error caught:', err);
@@ -121,6 +125,36 @@ export class ReviewWrapperComponent implements OnInit {
             console.log('Error caught:', err);
             return of(null); // fallback value
           })).subscribe((reply) => {
+            // Set artifacts if they exist in response
+            if ((reply as any).nontech_artifacts_md) {
+              this.specService.setNontechArtifacts((reply as any).nontech_artifacts_md);
+            }
+            if ((reply as any).technical_artifacts_md) {
+              this.specService.setTechnicalArtifacts((reply as any).technical_artifacts_md);
+            }
+
+            // Stop loader
+            this.loaderService.stop();
+
+            // Switch to preview mode and populate files
+            if (!this.isPreviewMode()) {
+              this.isPreviewMode.set(true);
+            }
+
+            // Collect all filenames from both artifacts and update files
+            const allFiles: string[] = [];
+            const nontechArtifacts = this.specService.nontech_artifacts_md();
+            if (nontechArtifacts) {
+              allFiles.push(...Object.keys(nontechArtifacts));
+            }
+            const technicalArtifacts = this.specService.technical_artifacts_md();
+            if (technicalArtifacts) {
+              allFiles.push(...Object.keys(technicalArtifacts));
+            }
+            
+            this.files.set(allFiles);
+            this.selectedFile = allFiles.length > 0 ? allFiles[0] : 'requirements.md';
+
             console.log(reply);
           })
         }
@@ -131,6 +165,23 @@ export class ReviewWrapperComponent implements OnInit {
   togglePreview() {
     this.isPreviewMode.update(previewMode => !previewMode);
     if (this.isPreviewMode()) {
+      // Collect all filenames from both artifacts
+      const allFiles: string[] = [];
+      
+      const nontechArtifacts = this.specService.nontech_artifacts_md();
+      if (nontechArtifacts) {
+        allFiles.push(...Object.keys(nontechArtifacts));
+      }
+      
+      const technicalArtifacts = this.specService.technical_artifacts_md();
+      if (technicalArtifacts) {
+        allFiles.push(...Object.keys(technicalArtifacts));
+      }
+      
+      this.files.set(allFiles);
+      this.selectedFile = allFiles.length > 0 ? allFiles[0] : 'requirements.md';
+    } else {
+      this.files.set([]);
       this.selectedFile = 'requirements.md';
     }
   }
@@ -140,7 +191,20 @@ export class ReviewWrapperComponent implements OnInit {
   }
 
   getMdText(file: string): string {
-    if (file === 'requirements.md') {
+    // Check if file exists in nontech artifacts
+    const nontechArtifacts = this.specService.nontech_artifacts_md();
+    if (nontechArtifacts && nontechArtifacts[file]) {
+      return nontechArtifacts[file];
+    }
+    
+    // Check if file exists in technical artifacts
+    const technicalArtifacts = this.specService.technical_artifacts_md();
+    if (technicalArtifacts && technicalArtifacts[file]) {
+      return technicalArtifacts[file];
+    }
+    
+    // Fallback: generate from spec for requirements.md
+    if (file === 'requirements.md_test') {
       let md = `# Requirements Specification\n\n`;
       for (let key in this.spec) {
         md += `## ${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n\n`;
@@ -164,8 +228,8 @@ export class ReviewWrapperComponent implements OnInit {
       }
       return md;
     }
-    // Placeholder for other files
-    return `# ${file}\n\nThis is the markdown content for ${file}.\n\n## Section\n\nContent here.`;
+    
+    return `# ${file}\n\nContent not found for this file.`;
   }
 
 }

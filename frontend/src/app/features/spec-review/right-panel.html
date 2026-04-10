@@ -1,7 +1,15 @@
 <div class="content">
 
   <div class="spec-content">
-    @if (mdText) {
+    @if (isPreviewMode && mdText) {
+      @if (isMermaidDiagram(mdText)) {
+        <div class="mermaid-container" #mermaidContainer></div>
+      } @else {
+        <div class="markdown-container">
+          <markdown [data]="mdText"></markdown>
+        </div>
+      }
+    } @else if (mdText) {
       <div class="markdown-container">
         <markdown [data]="mdText"></markdown>
       </div>

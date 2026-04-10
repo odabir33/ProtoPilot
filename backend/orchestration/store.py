@@ -16,8 +16,8 @@ class ProjectState:
     req_session_id: str
     stage: Stage = Stage.REQ
     spec: Optional[dict[str, Any]] = None
-    nontech_artifacts_md: Optional[str] = None
-    technical_artifacts_md: Optional[str] = None
+    nontech_artifacts_md: Optional[dict[str, str]] = None
+    technical_artifacts_md: Optional[dict[str, str]] = None
 
 _PROJECTS: dict[str, ProjectState] = {}
 

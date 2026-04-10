@@ -36,7 +36,13 @@ export interface Response {
   stage: string;
   reply: Question;
   spec: Spec;
-  nontech_artifacts_md: string;
-  technical_artifacts_md: string;
-  artifacts_md: string;
+  nontech_artifacts_md: Record<string, string>;
+  technical_artifacts_md: Record<string, string>;
+  artifacts_md: Record<string, string>;
+}
+
+export interface WizardCompleteData {
+  spec: Spec;
+  nontech_artifacts_md: Record<string, string>;
+  technical_artifacts_md: Record<string, string>;
 }

@@ -49,21 +49,31 @@ export class WizardComponent implements OnInit {
     }), map((res: Response | null) => {
       console.log("Response received: ", res);
       if (res?.spec?.project_name) {
-        return res.spec;
+        return {
+          reply: res.spec,
+          nontech_artifacts_md: res.nontech_artifacts_md,
+          technical_artifacts_md: res.technical_artifacts_md
+        };
       } else if (res?.reply?.suggestions) {
         res.reply.suggestions = res?.reply.suggestions?.map((suggestion) => {
           return { label: suggestion, selected: false }
         }) || [];
-        return res.reply;
+        return { reply: res.reply };
       }
       return null;
-    })).subscribe((reply: Question | Spec | null) => {
+    })).subscribe((data: any) => {
+      const reply = data?.reply;
+      console.log(reply)
       if((reply as Spec)?.project_name) {
         this.currentQuestion.summary = CONSTANTS.REQUIREMENTS_DONE_TEXT;
         this.currentQuestion.question = CONSTANTS.REQUIREMENTS_DONE_SUBTEXT;
-        this.onComplete.emit(reply);
-        this.answer = JSON.stringify(reply, null, 2);
-        this.textAreaRef.nativeElement.rows = 20;      
+        // Emit complete data with spec and artifacts
+        const completeData = {
+          spec: reply,
+          nontech_artifacts_md: data?.nontech_artifacts_md || {},
+          technical_artifacts_md: data?.technical_artifacts_md || {}
+        };
+        this.onComplete.emit(completeData);
       } else {
         this.currentQuestion.summary = (reply as Question)?.summary || CONSTANTS.ERROR_TEXT;
         this.currentQuestion.question = (reply as Question)?.question || "";
@@ -88,46 +98,4 @@ export class WizardComponent implements OnInit {
   back() {
   }
 
-  complete() {
-    // For now, emit a dummy spec. In real implementation, this would be the generated spec from responses.
-    const dummySpec = {
-      project_name: "Simple To-Do App",
-      core_entities: [
-        {
-          name: "Task",
-          attributes: [
-            "id: string",
-            "title: string",
-            "description: string",
-            "is_complete: boolean"
-          ]
-        }
-      ],
-      functional_requirements: [
-        {
-          description: "Users can add a new task with a title and a description.",
-          name: "Create Task"
-        }
-      ],
-      non_goals: [
-        "Team collaboration features."
-      ],
-      goals: [
-        "Enable users to quickly add tasks."
-      ],
-      non_functional_requirements: {
-        performance: "The application should load quickly.",
-        scalability: "Not a primary concern.",
-        security: "Basic web practices.",
-        availability: "Accessible at all times."
-      },
-      assumptions: [
-        "Single-page web application."
-      ],
-      target_users: [
-        "Individuals seeking a personal task management tool"
-      ]
-    };
-    this.onComplete.emit(dummySpec);
-  }
 }

@@ -15,7 +15,7 @@ from orchestration.store import Stage, get_or_create_project
 
 
 class Orchestrator:
-    def _build_response(self, proj, reply: str, artifacts_md: str | None = None) -> dict[str, Any]:
+    def _build_response(self, proj, reply: str, artifacts_md: dict[str, str] | None = None) -> dict[str, Any]:
         return {
             "stage": proj.stage,
             "reply": reply,
@@ -101,7 +101,7 @@ class Orchestrator:
             f"project_id={project_id}\n"
             "phase=non_tech\n"
             "Generate PM-facing non-technical artifacts now.\n"
-            "Save full content via save_nontech_artifacts(project_id, artifacts_md), "
+            "Save full content via save_nontech_artifacts(project_id, artifacts_dict) as a dictionary with filename keys and markdown content values, "
         )
         raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)
@@ -122,7 +122,7 @@ class Orchestrator:
             f"project_id={project_id}\n"
             "phase=technical\n"
             "Generate technical artifacts now. "
-            "Use load_spec first, then save_technical_artifacts at the end."
+            "Use load_spec first, then save_technical_artifacts with a dictionary (filename keys, markdown content values) at the end."
         )
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-tech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)

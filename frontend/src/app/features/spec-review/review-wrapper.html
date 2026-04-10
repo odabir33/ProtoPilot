@@ -23,7 +23,7 @@
   <div class="container">
 
     <app-left-panel
-      [files]="['requirements.md', 'architecture.md', 'api.md']"
+      [files]="files()"
       [selectedFile]="selectedFile"
       (fileSelected)="onFileSelect($event)">
     </app-left-panel>
@@ -33,7 +33,7 @@
     </app-right-panel>
 
   </div>
-  <div class="preview-container">
+  <!-- <div class="preview-container">
     <app-live-preview></app-live-preview>
-  </div>
+  </div> -->
 }

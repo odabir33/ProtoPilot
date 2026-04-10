@@ -94,18 +94,32 @@ textarea {
   border: 1px solid #334155;
 }
 
-.chat-section h3 {
-  margin-top: 0;
-  margin-bottom: 12px;
-  color: #f1f5f9;
+.markdown-container {
+  padding: 16px;
+  background: #0f172a;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  overflow: auto;
+  max-height: calc(100vh - 200px);
 }
 
-.markdown-container {
-  background: white;
-  color: black;
+.mermaid-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   padding: 20px;
+  background: #0f172a;
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid #334155;
+  overflow: auto;
+  max-height: calc(100vh - 200px);
+  width: 100%;
+}
+
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
+  min-width: fit-content;
 }
 
 .chat-section textarea {
