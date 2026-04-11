@@ -1,5 +1,6 @@
 import os
 from google.adk.runners import Runner
+from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.genai import types
 from core.sessions import session_service
 import uuid
@@ -33,6 +34,7 @@ async def run_turn(agent, session_id: str, message: str) -> str:
         user_id=user_id,
         session_id=session.id,
         new_message=types.Content(role="user", parts=[types.Part(text=message)]),
+        run_config=RunConfig(streaming_mode=StreamingMode.SSE),
     ):
         if event.content and event.content.parts:
             for part in event.content.parts:

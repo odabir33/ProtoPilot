@@ -15,6 +15,6 @@ def create_agent(llm, tools=None, phase: str = "non_tech") -> LlmAgent:
         tools=tools or [],
         generate_content_config=types.GenerateContentConfig(
             temperature=0.2,          
-            max_output_tokens=12288,
+            max_output_tokens=65535,
         ),
     )

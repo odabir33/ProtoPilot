@@ -86,6 +86,45 @@ def save_technical_artifacts(project_id: str, artifacts_md: str) -> dict[str, An
     return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
 
 
+def save_backend_code(project_id: str, files: dict[str, str]) -> dict[str, Any]:
+    """
+    Save generated Spring Boot backend source files.
+    files is a dict mapping file path to file content (e.g. "backend/pom.xml": "...").
+    Does NOT advance stage — call save_frontend_code to complete code generation.
+    """
+    proj = get_or_create_project(project_id, req_session_id=project_id)
+    proj.generated_code_files = files
+    _log_tool_event(
+        "save_backend_code",
+        {"project_id": project_id, "files": list(files.keys())},
+    )
+    return {"ok": True, "project_id": project_id, "files_saved": len(files)}
+
+
+def save_frontend_code(project_id: str, files: dict[str, str]) -> dict[str, Any]:
+    """
+    Save generated Angular frontend source files and advance the project to DEPLOY stage.
+    files is a dict mapping file path to file content (e.g. "frontend/src/main.ts": "...").
+    Merges with previously saved backend files.
+    """
+    proj = get_or_create_project(project_id, req_session_id=project_id)
+    before = proj.stage.value
+    merged = {**(proj.generated_code_files or {}), **files}
+    proj.generated_code_files = merged
+    proj.stage = Stage.DEPLOY
+    _log_tool_event(
+        "save_frontend_code",
+        {
+            "project_id": project_id,
+            "stage_before": before,
+            "stage_after": proj.stage.value,
+            "files": list(files.keys()),
+            "total_files": len(merged),
+        },
+    )
+    return {"ok": True, "project_id": project_id, "stage": proj.stage.value, "total_files_saved": len(merged)}
+
+
 def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
     """
     Force-set project stage. Intended for explicit orchestration transitions.

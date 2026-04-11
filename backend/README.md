@@ -1,6 +1,7 @@
 # ProtoPilot Backend
 
 FastAPI backend for a stage-driven multi-agent workflow built with Google ADK.
+Generates a full-stack Spring Boot + Angular application from a natural language description and runs it locally.
 
 
 ## 1. Project Structure
@@ -8,12 +9,13 @@ FastAPI backend for a stage-driven multi-agent workflow built with Google ADK.
 ```text
 backend/
 ├── api/
-│   ├── server.py              # FastAPI app entry
-│   └── routes/chat.py         # /chat endpoint
+│   ├── server.py                      # FastAPI app entry
+│   └── routes/chat.py                 # /chat and /jobs endpoints
 ├── orchestration/
-│   ├── orchestrator.py        # Stage controller
-│   ├── store.py               # In-memory project state
-│   └── tools.py               # Function-calling tools
+│   ├── orchestrator.py                # Stage controller
+│   ├── store.py                       # In-memory project state
+│   ├── tools.py                       # Function-calling tools
+│   └── local_deploy.py                # Local Spring Boot + Angular deploy
 ├── agents/
 │   ├── requirements_gathering_agent/
 │   │   ├── agent.py
@@ -21,44 +23,78 @@ backend/
 │   ├── artefacts_generation_agent/
 │   │   ├── agent.py
 │   │   └── instructions.py
-│   └── registry.py            # Agent factory registry
+│   ├── codegen_agent/
+│   │   ├── agent.py                   # Backend + frontend agent factories
+│   │   └── instructions.py            # Split backend/frontend instructions
+│   └── registry.py                    # Agent factory registry
 ├── core/
-│   ├── auth.py                # OAuth token
-│   ├── llm.py                 # LiteLLM wrapper
-│   ├── runner.py              # ADK runner bridge
-│   └── parse_spec.py          # Question extraction
+│   ├── auth.py                        # OAuth token
+│   ├── llm.py                         # LiteLLM wrapper
+│   ├── runner.py                      # ADK runner bridge (SSE streaming)
+│   └── parse_spec.py                  # Question extraction
 └── requirements.txt
 ```
 
 
-## 2. Environment Variables
+## 2. System Dependencies
+
+Install before running:
+
+```bash
+brew install openjdk@17 maven
+echo 'export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"' >> ~/.zshrc
+echo 'export JAVA_HOME="/opt/homebrew/opt/openjdk@17"' >> ~/.zshrc
+source ~/.zshrc
+npm install -g @angular/cli@17
+```
+
+
+## 3. Environment Variables
 
 Set in `backend/.env`:
 
-- `CLIENT_ID`
-- `CLIENT_SECRET`
-- `LITELLM_API_KEY`
-- `LITELLM_MODEL`
-- `LITELLM_API_BASE`
-- `USER_ID` (optional, default: `local-user`)
-- `APP_NAME` (optional, default: `ProtoPilot`)
+```
+CLIENT_ID=
+CLIENT_SECRET=
+LITELLM_API_KEY=
+LITELLM_MODEL=
+LITELLM_API_BASE=
+USER_ID=local-user      # optional
+APP_NAME=ProtoPilot     # optional
+```
 
-## 3. Run
+
+## 4. Run
 
 ```bash
+cd backend
+pip install -r requirements.txt
 uvicorn api.server:app --reload --port 8000
 ```
 
-Health checks:
+Health check: `GET /health`
 
-- `GET /`
-- `GET /health`
 
-## 4. Chat API
+## 5. Pipeline
 
-### Request
+```
+REQ → ARTIFACTS_NON_TECH → WAIT_APPROVAL → TECH_ARTIFACTS → CODEGEN → DEPLOY → QA
+```
 
-`POST /chat`
+| Stage | Trigger | Model | Description |
+|---|---|---|---|
+| `REQ` | User message | Gemini 2.5 Flash | Multi-turn requirements gathering, finalized via `submit_spec` |
+| `ARTIFACTS_NON_TECH` | Automatic | Gemini 2.5 Flash | Generates PRD, user stories, and other PM documents |
+| `WAIT_APPROVAL` | User message | None | `approve` to continue, `change` to revise requirements |
+| `TECH_ARTIFACTS` | Automatic | Gemini 2.5 Pro | Generates system design, API docs, database schema |
+| `CODEGEN` | Automatic (background job) | Gemini 2.5 Pro | Two LLM calls: backend first, then frontend |
+| `DEPLOY` | Automatic (background job) | None | Writes files locally, starts Spring Boot + Angular |
+| `QA` | Automatic | — | Deploy complete, `preview_url` available |
+
+
+## 6. Chat API
+
+### POST /chat
 
 ```json
 {
@@ -70,90 +106,49 @@ Health checks:
 
 ### Response Fields
 
-- `project_id`: request project id
-- `session_id`: request session id
-- `stage`: current stage enum
-- `reply`: short stage/status message
-- `spec`: latest requirements JSON (if available)
-- `nontech_artifacts_md`: non-technical markdown artifacts
-- `technical_artifacts_md`: technical markdown artifacts
-- `artifacts_md`: convenience field (current/last artifact markdown)
-- `questions`: extracted clarification questions (only when stage is `REQ`)
+| Field | Description |
+|-------|-------------|
+| `stage` | Current pipeline stage |
+| `reply` | Status message |
+| `job_id` | Async job ID (present during CODEGEN/DEPLOY stages) |
+| `spec` | Requirements JSON |
+| `nontech_artifacts_md` | PM-facing markdown artifacts |
+| `technical_artifacts_md` | Technical markdown artifacts |
+| `preview_url` | Preview URL once deployed (`http://localhost:4200`) |
+| `questions` | Clarification questions (REQ stage only) |
 
-## 5. Stage Flow
+### GET /jobs/{job_id}
 
-### REQ
+轮询异步 job 状态：
 
-- Runs Requirements Agent.
-- Agent uses tool call `submit_spec(project_id, spec)` to finalize.
-- On success, stage moves to `ARTIFACTS_NON_TECH`.
-
-### ARTIFACTS_NON_TECH
-
-- Runs Artifacts Agent in `phase=non_tech`.
-- Agent should call:
-  1. `load_spec(project_id)`
-  2. `save_nontech_artifacts(project_id, artifacts_md)`
-- On success, stage moves to `WAIT_APPROVAL`.
-
-### WAIT_APPROVAL
-
-- No model call.
-- User message handling:
-  - `approve` -> `TECH_ARTIFACTS`
-  - `change` -> `REQ` (revision mode)
-
-### TECH_ARTIFACTS
-
-- Runs Artifacts Agent in `phase=technical`.
-- Agent should call:
-  1. `load_spec(project_id)`
-  2. `save_technical_artifacts(project_id, artifacts_md)`
-- On success, stage moves to `CODEGEN`.
-
-### CODEGEN / QA
-
-- Placeholder stages for downstream pipelines.
-
-## 6. Tools (Function Calling)
-
-Defined in `orchestration/tools.py`:
-
-- `submit_spec(project_id, spec)`
-- `load_spec(project_id)`
-- `save_nontech_artifacts(project_id, artifacts_md)`
-- `save_technical_artifacts(project_id, artifacts_md)`
-- `set_project_stage(project_id, stage)`
-
-Tool calls are logged as:
-
-```text
-[TOOL_CALL] <tool_name> {...}
+```json
+{ "status": "running|done|failed", "result": {}, "error": null }
 ```
 
-## 7. Important Behavior Notes
-
-- State store is in-memory only (`orchestration/store.py`).
-  - Restarting server clears all project/session state.
-- `project_id` identifies project state.
-- `session_id` is conversation context id used by ADK runner.
-- `reply` is intentionally short for artifact stages.
-  - Full artifact content should be read from `nontech_artifacts_md` or `technical_artifacts_md`.
-
-## 8. Troubleshooting
-
-### Stage stuck at `ARTIFACTS_NON_TECH` or `TECH_ARTIFACTS`
-
-Check logs for missing save tool call:
-
-- `save_nontech_artifacts`
-- `save_technical_artifacts`
-
-If missing, inspect token limits.
-
-### Token cutoff / incomplete generation
-
-- Increase agent `max_output_tokens` in agent config.
-- Keep `reply` short and persist full markdown via save tools.
+**Polling flow:**
+1. Receive `CODEGEN_PENDING` → poll codegen job
+2. Codegen done, get `job_id` from result → poll deploy job
+3. Deploy done, get `preview_url` from result → render iframe
 
 
+## 7. Tools (Function Calling)
+
+| Tool | Stage | Description |
+|------|-------|-------------|
+| `submit_spec` | REQ | Saves requirements, advances to ARTIFACTS_NON_TECH |
+| `load_spec` | ARTIFACTS | Loads requirements spec |
+| `save_nontech_artifacts` | ARTIFACTS_NON_TECH | Saves PM docs, advances to WAIT_APPROVAL |
+| `save_technical_artifacts` | TECH_ARTIFACTS | Saves technical docs, advances to CODEGEN |
+| `save_backend_code` | CODEGEN | Saves Spring Boot files to memory |
+| `save_frontend_code` | CODEGEN | Saves Angular files to memory, advances to DEPLOY |
+| `set_project_stage` | Any | Force-sets pipeline stage |
+
+Tool call log format: `[TOOL_CALL] <tool_name> {...}`
+
+
+## 8. Notes
+
+- All state is in-memory (`orchestration/store.py`) — restarting the server clears all project state
+- `project_id` identifies project state; `session_id` is the ADK conversation context
+- Generated code is written to `/tmp/protopilot_deploy/`; logs at `backend.log` / `frontend.log`
+- SSE streaming is enabled on all LLM calls to avoid LiteLLM proxy gateway timeouts
