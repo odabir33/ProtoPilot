@@ -7,6 +7,7 @@ export class SpecService {
   readonly spec = signal<any>({});
   readonly nontech_artifacts_md = signal<Record<string, string> | null>(null);
   readonly technical_artifacts_md = signal<Record<string, string> | null>(null);
+  readonly generated_code_files = signal<Record<string, string> | null>(null);
 
   setSpec(spec: any): void {
     this.spec.set(spec);
@@ -28,6 +29,10 @@ export class SpecService {
     this.technical_artifacts_md.set(artifacts);
   }
 
+  setGeneratedCode(files: Record<string, string>): void {
+    this.generated_code_files.set(files);
+  }
+
   updateNontechArtifact(filename: string, content: string): void {
     this.nontech_artifacts_md.update(current => ({
       ...current,
@@ -45,5 +50,9 @@ export class SpecService {
   clearArtifacts(): void {
     this.nontech_artifacts_md.set(null);
     this.technical_artifacts_md.set(null);
+  }
+
+  clearGeneratedCode(): void {
+    this.generated_code_files.set(null);
   }
 }

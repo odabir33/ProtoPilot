@@ -1,7 +1,11 @@
 <div class="header">
   <h1>Specification Review</h1>
   <div>
-    <button class="approve-btn" (click)="approveSpec()">Approve Specification</button>
+    @if (!isPreviewMode()) {
+      <button class="approve-btn" (click)="approveSpec()">Approve Specification</button>
+    } @else {
+      <button class="approve-btn" (click)="generateCode()">Generate Code</button>
+    }
     <button class="preview-btn" (click)="togglePreview()">{{ isPreviewMode() ? 'Edit' : 'Preview' }}</button>
   </div>
 </div>
@@ -28,6 +32,7 @@
       (fileSelected)="onFileSelect($event)">
     </app-left-panel>
     <app-right-panel
+      [selectedFile]="selectedFile"
       [mdText]="getMdText(selectedFile)"
       [isPreviewMode]="true">
     </app-right-panel>

@@ -46,6 +46,7 @@ gemini-2.5-flash-lite-litellm-usw1
 gemini-2.5-pro-litellm-usc1
 gemini-2.5-pro-litellm-usw1
 claude-sonnet-4@20250514-litellm-use5
+claude-sonnet-4-6-litellm-use5
 imagen-3.0-generate-002-litellm-usc1
 text-embedding-005-litellm-usc1
 text-embedding-005-litellm-usw1

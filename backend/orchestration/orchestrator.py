@@ -10,12 +10,14 @@ from orchestration.tools import (
     save_technical_artifacts,
     set_project_stage,
     submit_spec,
+    load_artifacts,
+    save_generated_code,
 )
 from orchestration.store import Stage, get_or_create_project
 
 
 class Orchestrator:
-    def _build_response(self, proj, reply: str, artifacts_md: dict[str, str] | None = None) -> dict[str, Any]:
+    def _build_response(self, proj, reply: str, artifacts_md: dict[str, str] | None = None, generated_code_files: dict[str, str] | None = None) -> dict[str, Any]:
         return {
             "stage": proj.stage,
             "reply": reply,
@@ -23,6 +25,7 @@ class Orchestrator:
             "nontech_artifacts_md": proj.nontech_artifacts_md,
             "technical_artifacts_md": proj.technical_artifacts_md,
             "artifacts_md": artifacts_md or proj.technical_artifacts_md or proj.nontech_artifacts_md,
+            "generated_code_files": generated_code_files or proj.generated_code_files,
         }
 
     def _requirements_tools(self) -> list:
@@ -30,6 +33,9 @@ class Orchestrator:
 
     def _artifacts_tools(self) -> list:
         return [load_spec, save_nontech_artifacts, save_technical_artifacts, set_project_stage]
+
+    def _code_generation_tools(self) -> list:
+        return [load_spec, load_artifacts, save_generated_code, set_project_stage]
 
     async def _handle_wait_approval(self, project_id: str, req_session_id: str, normalized: str) -> dict[str, Any]:
         proj = get_or_create_project(project_id, req_session_id)
@@ -89,10 +95,12 @@ class Orchestrator:
             return await self._run_artifacts_non_tech(llm, project_id, req_session_id)
         if proj.stage == Stage.TECH_ARTIFACTS:
             return await self._run_artifacts_technical(llm, project_id, req_session_id)
+        if proj.stage == Stage.CODEGEN:
+            return await self._run_code_generation(llm, project_id, req_session_id)
 
         return self._build_response(
             proj=proj,
-            reply='{"message": "NEXT: Code Generation / QA。"}',
+            reply='{"message": "Project complete. Ready for QA."}',
         )
 
     async def _run_artifacts_non_tech(self, llm, project_id: str, req_session_id: str) -> dict:
@@ -136,3 +144,41 @@ class Orchestrator:
             reply=reply,
             artifacts_md=proj.technical_artifacts_md,
         )
+
+    async def _run_code_generation(self, llm, project_id: str, req_session_id: str) -> dict:
+        try:
+            code_agent = AGENT_FACTORIES["code_generation"](llm, tools=self._code_generation_tools())
+            code_prompt = (
+                f"project_id={project_id}\n"
+                "Generate production-ready Angular frontend code now.\n"
+                "Use load_spec to get requirements, load_artifacts to get all artifacts, "
+                "generate modular Angular components and services with mocked API calls, "
+                "then save all code files via save_generated_code(project_id, files_json)."
+            )
+            _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-codegen", message=code_prompt)
+            proj = get_or_create_project(project_id, req_session_id)
+            
+            # Check if code generation was successful
+            if proj.stage == Stage.QA and proj.generated_code_files:
+                reply = '{"message": "Angular frontend code generated successfully."}'
+                return self._build_response(
+                    proj=proj,
+                    reply=reply,
+                    generated_code_files=proj.generated_code_files,
+                )
+            else:
+                reply = '{"message": "Code generation did not complete tool save."}'
+                return self._build_response(
+                    proj=proj,
+                    reply=reply,
+                )
+        except Exception as e:
+            proj = get_or_create_project(project_id, req_session_id)
+            error_message = f"Code generation failed: {str(e)}"
+            reply = '{"message": "' + error_message + '"}'
+            print(f"[ERROR] Code generation: {error_message}")
+            # Do not change stage on error - return current project state
+            return self._build_response(
+                proj=proj,
+                reply=reply,
+            )

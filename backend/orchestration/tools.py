@@ -102,3 +102,44 @@ def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
         },
     )
     return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
+
+
+def load_artifacts(project_id: str) -> dict[str, Any]:
+    """
+    Load both non-technical and technical artifacts for code generation.
+    """
+    proj = get_or_create_project(project_id, req_session_id=project_id)
+    _log_tool_event(
+        "load_artifacts",
+        {
+            "project_id": project_id,
+            "stage": proj.stage.value,
+            "has_nontech": proj.nontech_artifacts_md is not None,
+            "has_technical": proj.technical_artifacts_md is not None,
+        },
+    )
+    return {
+        "project_id": project_id,
+        "nontech_artifacts_md": proj.nontech_artifacts_md or {},
+        "technical_artifacts_md": proj.technical_artifacts_md or {},
+    }
+
+
+def save_generated_code(project_id: str, files_json: dict[str, str]) -> dict[str, Any]:
+    """
+    Save generated code files (as dictionary of filepath: file_content) and move to QA stage.
+    """
+    proj = get_or_create_project(project_id, req_session_id=project_id)
+    before = proj.stage.value
+    proj.generated_code_files = files_json
+    proj.stage = Stage.QA
+    _log_tool_event(
+        "save_generated_code",
+        {
+            "project_id": project_id,
+            "stage_before": before,
+            "stage_after": proj.stage.value,
+            "generated_files": list(files_json.keys()) if files_json else [],
+        },
+    )
+    return {"ok": True, "project_id": project_id, "stage": proj.stage.value, "files_count": len(files_json or {})}
