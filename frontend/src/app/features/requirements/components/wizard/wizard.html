@@ -1,0 +1,47 @@
+<div class="wizard-container">
+
+  <div class="wizard-card">
+
+    <!-- <div class="progress">
+      Step {{stepNumber}} of {{totalSteps}}
+      <div class="progress-bar">
+        <div class="progress-fill"
+             [style.width.%]="(stepNumber/totalSteps)*100">
+        </div>
+      </div>
+    </div> -->
+
+    <h2 class="question-title">
+      {{currentQuestion.summary}}
+    </h2>
+
+    <h3 class="question-subtitle">
+      {{currentQuestion.question}}
+    </h3>
+
+    <div class="suggestions">
+        @for(s of currentQuestion.suggestions; track s){
+            <button (click)="selectSuggestion(s)"
+                    class="chip" [class.selected]="s.selected"
+                    >
+                {{s.label}}
+            </button>
+        }
+    </div>
+
+    <textarea [(ngModel)]="answer"
+        id="answer"
+        #textAreaRef
+        placeholder="Type your answer..."
+        class="input-area"></textarea>
+
+    <div class="actions">
+      <!-- <button class="back-btn" (click)="back()">Back</button> -->
+      <button class="next-btn" (click)="handleSendMessage()"
+              [disabled]="isLoading() || !answer">
+        {{ isLoading() ? 'Thinking...' : 'Next' }}
+      </button>
+    </div>
+
+  </div>
+</div>
