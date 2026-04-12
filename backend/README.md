@@ -26,7 +26,7 @@ backend/
 │   ├── auth.py                # OAuth token
 │   ├── llm.py                 # LiteLLM wrapper
 │   ├── runner.py              # ADK runner bridge
-│   └── parse_spec.py          # Question extraction
+│   └── parse_spec.py          # Question extraction (deprecated)
 └── requirements.txt
 ```
 
@@ -73,12 +73,11 @@ Health checks:
 - `project_id`: request project id
 - `session_id`: request session id
 - `stage`: current stage enum
-- `reply`: short stage/status message
+- `reply`: JSON object with summary, question and suggestions
 - `spec`: latest requirements JSON (if available)
 - `nontech_artifacts_md`: non-technical markdown artifacts
 - `technical_artifacts_md`: technical markdown artifacts
 - `artifacts_md`: convenience field (current/last artifact markdown)
-- `questions`: extracted clarification questions (only when stage is `REQ`)
 
 ## 5. Stage Flow
 
