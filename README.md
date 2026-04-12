@@ -33,6 +33,37 @@ adk api_server
 fastapi dev api/server.py
 ```
 
+### Terminal 1 (Backend)
+
+```bash
+cd backend
+
+python -m venv .venv
+
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+# or CMD
+# .venv\Scripts\activate.bat
+
+pip install -r requirements.txt
+pip install uvicorn fastapi
+
+# create backend/.env
+# CLIENT_ID=xxx
+# CLIENT_SECRET=xxx
+# LITELLM_API_KEY=gemini_api_key
+# LITELLM_MODEL=gemini-2.0-flash-001-litellm-usc1
+# LITELLM_API_BASE=https://generativelanguage.googleapis.com/v1beta
+
+uvicorn api.server:app --reload --port 8000
+
+### Terminal 2 (Frontend)
+
+cd frontend
+
+npm install
+npm start
+
 ## Available Models For Our Team
 ```
 gemini-2.0-flash-001-litellm-usc1
