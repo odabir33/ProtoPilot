@@ -33,6 +33,53 @@ adk api_server
 fastapi dev api/server.py
 ```
 
+## Backend Run
+
+
+# go to backend folder
+cd backend
+
+# create virtual environment
+# MacOS or Linux
+python3 -m venv .venv
+
+# Windows
+python -m venv .venv
+
+# activate virtual environment
+# MacOS or Linux
+source .venv/bin/activate
+
+# Windows
+. .\.venv\Scripts\Activate.ps1
+
+# Windows CMD 
+.venv\Scripts\activate.bat
+
+# install backend deps
+pip install -r requirements.txt
+
+# run backend server
+uvicorn api.server:app --reload --port 8000
+
+# health check
+# open in browser:
+http://127.0.0.1:8000/health
+
+## Frontend Run
+
+# open a new terminal and go to frontend folder
+cd frontend
+
+# install frontend deps
+npm install
+
+# run frontend
+npm start
+
+# open in browser:
+http://localhost:4200
+
 ## Available Models For Our Team
 ```
 gemini-2.0-flash-001-litellm-usc1
