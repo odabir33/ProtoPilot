@@ -122,6 +122,58 @@ textarea {
   min-width: fit-content;
 }
 
+.code-preview-container {
+  width: 1000px;
+  height: 100%;
+  align-items: stretch;
+  justify-content: stretch;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+}
+
+.code-preview-header {
+  text-align: center;
+  max-width: 600px;
+}
+
+.code-preview-header h2 {
+  margin: 0 0 16px 0;
+  font-size: 28px;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.code-preview-info {
+  margin: 0 0 32px 0;
+  font-size: 16px;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.stackblitz-btn {
+  background: #3b82f6;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 6px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.stackblitz-btn:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.stackblitz-btn:active {
+  transform: translateY(0);
+}
+
 .chat-section textarea {
   width: 100%;
   box-sizing: border-box;

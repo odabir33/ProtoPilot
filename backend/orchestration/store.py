@@ -18,6 +18,7 @@ class ProjectState:
     spec: Optional[dict[str, Any]] = None
     nontech_artifacts_md: Optional[dict[str, str]] = None
     technical_artifacts_md: Optional[dict[str, str]] = None
+    generated_code_files: Optional[dict[str, str]] = None
 
 _PROJECTS: dict[str, ProjectState] = {}
 

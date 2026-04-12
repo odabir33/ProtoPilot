@@ -1,4 +1,4 @@
-import { JsonPipe } from '@angular/common';
+import { JsonPipe, CommonModule } from '@angular/common';
 import { Component, inject, Input, OnChanges, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown';
@@ -6,11 +6,12 @@ import { WizardService } from '../requirements/services/wizard-service';
 import { SpecService } from './services/spec.service';
 import { catchError, of } from 'rxjs';
 import mermaid from 'mermaid';
+import { LivePreviewComponent } from './components/live-preview/live-preview.component';
 
 @Component({
   selector: 'app-right-panel',
   standalone: true,
-  imports: [FormsModule, JsonPipe, MarkdownModule],
+  imports: [FormsModule, JsonPipe, MarkdownModule, CommonModule, LivePreviewComponent],
   templateUrl: './right-panel.html',
   styleUrl: './right-panel.css'
 })
@@ -19,6 +20,7 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   @Input() selectedSection: string = '';
   @Input() mdText: string = '';
   @Input() isPreviewMode: boolean = false;
+  @Input() selectedFile: string = '';
   @ViewChild('mermaidContainer', { static: false }) mermaidContainer?: ElementRef;
 
   isEditing: boolean = false;
@@ -30,7 +32,7 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   specService = inject(SpecService);
 
   constructor() {
-    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+    mermaid.initialize({ startOnLoad: false });
   }
 
   ngAfterViewInit() {
@@ -90,6 +92,67 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
     }
     // If no code block, return the content as is
     return content.trim();
+  }
+
+  isCodePreview(): boolean {
+    return this.selectedFile === 'code-preview';
+  }
+
+  getGeneratedFiles(): Record<string, string> | null {
+    return this.specService.generated_code_files();
+  }
+
+  createStackBlitzProject(): any {
+    const generatedCode = this.specService.generated_code_files();
+    if (!generatedCode) return null;
+
+    return {
+      files: generatedCode,
+      title: 'Generated Angular Project',
+      description: 'Auto-generated Angular project from ProtoPilot',
+    };
+  }
+
+  openStackBlitz(): void {
+    const generatedCode = this.specService.generated_code_files();
+    if (!generatedCode) {
+      console.error('No generated code found');
+      return;
+    }
+
+    // StackBlitz API endpoint
+    const url = 'https://stackblitz.com/api/v1/angular';
+    
+    // Create form data
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = '_blank';
+
+    // Add files to form
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'project[files]';
+    input.value = JSON.stringify(generatedCode);
+    form.appendChild(input);
+
+    // Add title
+    const titleInput = document.createElement('input');
+    titleInput.type = 'hidden';
+    titleInput.name = 'project[title]';
+    titleInput.value = 'ProtoPilot Generated App';
+    form.appendChild(titleInput);
+
+    // Add description
+    const descInput = document.createElement('input');
+    descInput.type = 'hidden';
+    descInput.name = 'project[description]';
+    descInput.value = 'Auto-generated Angular application from ProtoPilot';
+    form.appendChild(descInput);
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
   }
 
   get selectedData() {

@@ -162,6 +162,30 @@ export class ReviewWrapperComponent implements OnInit {
     })
   }
 
+  generateCode() {
+    this.loaderService.start();
+    const projectId = 'project-' + Date.now();
+    this.wizardService.sendMessage('generate-code').pipe(catchError(err => {
+      console.log('Error caught:', err);
+      this.loaderService.stop();
+      return of(null);
+    })).subscribe((reply) => {
+      if ((reply as any).generated_code_files) {
+        this.specService.setGeneratedCode((reply as any).generated_code_files);
+        
+        // Clear files and reset selectedFile to trigger code preview
+        this.files.set([]);
+        this.selectedFile = 'code-preview';
+        
+        this.loaderService.stop();
+        console.log('Code generated successfully');
+      } else {
+        this.loaderService.stop();
+        console.error('Code generation failed');
+      }
+    });
+  }
+
   togglePreview() {
     this.isPreviewMode.update(previewMode => !previewMode);
     if (this.isPreviewMode()) {
