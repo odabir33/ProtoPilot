@@ -1,0 +1,3 @@
+App idea 1
+An IT ticketing system that can generate incidents, change requests, work orders and assign tickets to support agents. The tickets should have fields like title, description, priority, severity, assignee, status, activity notes, etc. The app should be a simple web-app with basic authentication using JWT.
+
