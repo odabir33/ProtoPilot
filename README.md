@@ -34,18 +34,20 @@ fastapi dev api/server.py
 ```
 
 ## Available Models For Our Team
-- gemini-2.0-flash-001-litellm-usc1
-- gemini-2.0-flash-001-litellm-usw1
-- gemini-2.0-flash-lite-001-litellm-usc1
-- gemini-2.0-flash-lite-001-litellm-usw1
-- gemini-2.5-flash-litellm-usc1
-- gemini-2.5-flash-litellm-usw1
-- gemini-2.5-flash-lite-litellm-usc1
-- gemini-2.5-flash-lite-litellm-usw1
-- gemini-2.5-pro-litellm-usc1
-- gemini-2.5-pro-litellm-usw1
-- claude-sonnet-4@20250514-litellm-use5
-- imagen-3.0-generate-002-litellm-usc1
-- text-embedding-005-litellm-usc1
-- text-embedding-005-litellm-usw1
-- llama-4-maverick-17b-128e-instruct-maas-litellm-use5
+```
+gemini-2.0-flash-001-litellm-usc1
+gemini-2.0-flash-001-litellm-usw1
+gemini-2.0-flash-lite-001-litellm-usc1
+gemini-2.0-flash-lite-001-litellm-usw1
+gemini-2.5-flash-litellm-usc1
+gemini-2.5-flash-litellm-usw1
+gemini-2.5-flash-lite-litellm-usc1
+gemini-2.5-flash-lite-litellm-usw1
+gemini-2.5-pro-litellm-usc1
+gemini-2.5-pro-litellm-usw1
+claude-sonnet-4@20250514-litellm-use5
+imagen-3.0-generate-002-litellm-usc1
+text-embedding-005-litellm-usc1
+text-embedding-005-litellm-usw1
+llama-4-maverick-17b-128e-instruct-maas-litellm-use5
+```
