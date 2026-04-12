@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from orchestration.orchestrator import Orchestrator
-import json
+from core.parse_spec import extract_questions
 
 router = APIRouter()
 orch = Orchestrator()
@@ -16,15 +16,15 @@ async def chat(req: ChatRequest):
     try:
         result = await orch.handle(req.project_id, req.session_id, req.message)
 
-        if result.get("stage") == "REQ" and result["reply"]:
-            result["reply"] = json.loads(result["reply"])
+        questions = []
+        if result.get("stage") == "REQ":
+            questions = extract_questions(result.get("reply", ""))
 
         return {
             "project_id": req.project_id,
             "session_id": req.session_id,
             **result,
+            "questions": questions,
         }
     except Exception as e:
-        print("#########", e)
-        print("#########", result.get("reply"))
         raise HTTPException(status_code=500, detail=str(e))

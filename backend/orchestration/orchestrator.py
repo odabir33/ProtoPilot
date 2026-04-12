@@ -15,7 +15,7 @@ from orchestration.store import Stage, get_or_create_project
 
 
 class Orchestrator:
-    def _build_response(self, proj, reply: str, artifacts_md: dict[str, str] | None = None) -> dict[str, Any]:
+    def _build_response(self, proj, reply: str, artifacts_md: str | None = None) -> dict[str, Any]:
         return {
             "stage": proj.stage,
             "reply": reply,
@@ -41,12 +41,12 @@ class Orchestrator:
             proj = get_or_create_project(project_id, req_session_id)
             return self._build_response(
                 proj=proj,
-                reply='{"message": "You have entered revision mode. Please enter the points to be modified."}',
+                reply="You have entered revision mode. Please enter the points to be modified.",
                 artifacts_md=proj.nontech_artifacts_md,
             )
         return self._build_response(
             proj=proj,
-            reply='{"message": "approve or change"}',
+            reply="approve or change",
             artifacts_md=proj.nontech_artifacts_md,
         )
 
@@ -92,7 +92,7 @@ class Orchestrator:
 
         return self._build_response(
             proj=proj,
-            reply='{"message": "NEXT: Code Generation / QA。"}',
+            reply="NEXT: Code Generation / QA。",
         )
 
     async def _run_artifacts_non_tech(self, llm, project_id: str, req_session_id: str) -> dict:
@@ -101,15 +101,15 @@ class Orchestrator:
             f"project_id={project_id}\n"
             "phase=non_tech\n"
             "Generate PM-facing non-technical artifacts now.\n"
-            "Save full content via save_nontech_artifacts(project_id, artifacts_dict) as a dictionary with filename keys and markdown content values, "
+            "Save full content via save_nontech_artifacts(project_id, artifacts_md), "
         )
         raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)
-        reply = '{"message": ' + (
-            '"Non-technical artifacts saved."'
+        reply = (
+            "Non-technical artifacts saved."
             if proj.stage == Stage.WAIT_APPROVAL
-            else '"Artifacts generation did not complete tool save."'
-        ) + '}'
+            else "Artifacts generation did not complete tool save."
+        )
         return self._build_response(
             proj=proj,
             reply=reply,
@@ -122,15 +122,15 @@ class Orchestrator:
             f"project_id={project_id}\n"
             "phase=technical\n"
             "Generate technical artifacts now. "
-            "Use load_spec first, then save_technical_artifacts with a dictionary (filename keys, markdown content values) at the end."
+            "Use load_spec first, then save_technical_artifacts at the end."
         )
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-tech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)
-        reply = '{"message": ' + (
-            '"Technical artifacts saved."'
+        reply = (
+            "Technical artifacts saved."
             if proj.stage in {Stage.CODEGEN, Stage.QA}
-            else '"Technical artifacts generation did not complete tool save."'
-        ) + '}'
+            else "Technical artifacts generation did not complete tool save."
+        )
         return self._build_response(
             proj=proj,
             reply=reply,

@@ -46,9 +46,9 @@ def load_spec(project_id: str) -> dict[str, Any]:
     return {"project_id": project_id, "spec": proj.spec or {}}
 
 
-def save_nontech_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dict[str, Any]:
+def save_nontech_artifacts(project_id: str, artifacts_md: str) -> dict[str, Any]:
     """
-    Save non-technical artifacts (as dictionary of filename: markdown_content) and wait for product-manager approval.
+    Save non-technical artifacts and wait for product-manager approval.
     """
     proj = get_or_create_project(project_id, req_session_id=project_id)
     before = proj.stage.value
@@ -60,15 +60,15 @@ def save_nontech_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dic
             "project_id": project_id,
             "stage_before": before,
             "stage_after": proj.stage.value,
-            "artifact_files": list(artifacts_md.keys()) if artifacts_md else [],
+            "artifacts_len": len(artifacts_md or ""),
         },
     )
     return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
 
 
-def save_technical_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dict[str, Any]:
+def save_technical_artifacts(project_id: str, artifacts_md: str) -> dict[str, Any]:
     """
-    Save technical artifacts (as dictionary of filename: markdown_content) and move workflow to CODEGEN.
+    Save technical artifacts and move workflow to CODEGEN.
     """
     proj = get_or_create_project(project_id, req_session_id=project_id)
     before = proj.stage.value
@@ -80,7 +80,7 @@ def save_technical_artifacts(project_id: str, artifacts_md: dict[str, str]) -> d
             "project_id": project_id,
             "stage_before": before,
             "stage_after": proj.stage.value,
-            "artifact_files": list(artifacts_md.keys()) if artifacts_md else [],
+            "artifacts_len": len(artifacts_md or ""),
         },
     )
     return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
