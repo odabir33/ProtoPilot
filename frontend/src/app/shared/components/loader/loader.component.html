@@ -1,8 +1,0 @@
-<ng-container *ngIf="loaderState$ | async as state">
-  <div class="loader-overlay" *ngIf="state.isLoading">
-    <div class="loader-container">
-      <div class="spinner"></div>
-      <p class="loader-message">{{ state.message }}</p>
-    </div>
-  </div>
-</ng-container>
