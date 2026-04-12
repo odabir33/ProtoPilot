@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, Output, EventEmitter, signal, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { WizardService } from '../../services/wizard-service';
-import { Question, Response, Spec } from '../../models/response.model';
+import { Question, Response } from '../../models/question.model';
 import { CONSTANTS } from '../../config/sample-questions';
 import { catchError, map, of } from 'rxjs';
 
@@ -13,8 +13,6 @@ import { catchError, map, of } from 'rxjs';
   imports: [FormsModule]
 })
 export class WizardComponent implements OnInit {
-
-  @Output() onComplete = new EventEmitter<any>();
 
   currentQuestion: Question = { summary: CONSTANTS.REQUIREMENTS_INITIAL_PROMPT, question: "", suggestions: [] };
   answer: string = '';
@@ -36,9 +34,10 @@ export class WizardComponent implements OnInit {
   }
 
   handleSendMessage() {
+    console.log(this.answer)
     if (!this.answer) return;
     this.isLoading.set(true);
-    this.currentQuestion.summary = CONSTANTS.THINKING_TEXT;
+    this.currentQuestion.summary = "Thinking...";
     this.currentQuestion.suggestions = [];
     this.currentQuestion.question = "";
     let tempAnswer = this.answer;
@@ -47,37 +46,26 @@ export class WizardComponent implements OnInit {
       console.log('Error caught:', err);
       return of(null); // fallback value
     }), map((res: Response | null) => {
-      console.log("Response received: ", res);
-      if (res?.spec?.project_name) {
-        return {
-          reply: res.spec,
-          nontech_artifacts_md: res.nontech_artifacts_md,
-          technical_artifacts_md: res.technical_artifacts_md
-        };
-      } else if (res?.reply?.suggestions) {
-        res.reply.suggestions = res?.reply.suggestions?.map((suggestion) => {
+      if (res && res.spec) {
+        res.spec.suggestions = res?.spec.suggestions?.map((suggestion) => {
           return { label: suggestion, selected: false }
         }) || [];
-        return { reply: res.reply };
+        return res.spec;
       }
       return null;
-    })).subscribe((data: any) => {
-      const reply = data?.reply;
-      console.log(reply)
-      if((reply as Spec)?.project_name) {
-        this.currentQuestion.summary = CONSTANTS.REQUIREMENTS_DONE_TEXT;
-        this.currentQuestion.question = CONSTANTS.REQUIREMENTS_DONE_SUBTEXT;
-        // Emit complete data with spec and artifacts
-        const completeData = {
-          spec: reply,
-          nontech_artifacts_md: data?.nontech_artifacts_md || {},
-          technical_artifacts_md: data?.technical_artifacts_md || {}
-        };
-        this.onComplete.emit(completeData);
+    })).subscribe((res: Question | null) => {
+      console.log("Summary", res?.summary);
+      console.log("Question", res?.question);
+      console.log("Suggestions", res?.suggestions);
+      if(res?.project_name) {
+        this.currentQuestion.summary = "Great! I think we have enough clarity on the idea now!";
+        this.currentQuestion.question = "Here are the requirements we discussed in a structured format:"
+        this.answer = JSON.stringify(res, null, 2);
+        this.textAreaRef.nativeElement.rows = 20;      
       } else {
-        this.currentQuestion.summary = (reply as Question)?.summary || CONSTANTS.ERROR_TEXT;
-        this.currentQuestion.question = (reply as Question)?.question || "";
-        this.currentQuestion.suggestions = (reply as Question)?.suggestions || [];
+        this.currentQuestion.summary = res?.summary || "Something went wrong. Please try again! ";
+        this.currentQuestion.question = res?.question || "";
+        this.currentQuestion.suggestions = res?.suggestions || [];
         this.answer = "";
       }
       this.isLoading.set(false);
@@ -97,5 +85,4 @@ export class WizardComponent implements OnInit {
 
   back() {
   }
-
 }

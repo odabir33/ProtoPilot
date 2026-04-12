@@ -35,8 +35,7 @@ Work iteratively:
 - Do not make assumptions without confirmation
 
 While requirements are not sufficiently clear:
-- Output structured JSON in this format (without markdown code block):
-- Make sure to just output the JSON without any additional text or formatting, so it can be easily parsed by the system. Do not include explanations or summaries in this output.
+- Output structured JSON in this format and nothing else:
 {
 "summary" : "",
 "question" : "",
