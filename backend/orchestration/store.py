@@ -23,6 +23,7 @@ class ProjectState:
     technical_artifacts_md: Optional[str] = None
     generated_code_files: Optional[dict[str, str]] = None
     preview_url: Optional[str] = None
+    api_spec_summary: Optional[str] = None  # compact plain-text endpoint list for frontend agent
 
 
 _PROJECTS: dict[str, ProjectState] = {}

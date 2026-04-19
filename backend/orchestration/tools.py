@@ -86,6 +86,22 @@ def save_technical_artifacts(project_id: str, artifacts_md: str) -> dict[str, An
     return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
 
 
+def save_backend_code_partial(project_id: str, files: dict[str, str]) -> dict[str, Any]:
+    """
+    Save a batch of Spring Boot backend source files without advancing the project stage.
+    Call this for the first batch (entities + repositories), then call save_backend_code
+    for the final batch (services + controllers) to complete backend generation.
+    """
+    proj = get_or_create_project(project_id, req_session_id=project_id)
+    merged = {**(proj.generated_code_files or {}), **files}
+    proj.generated_code_files = merged
+    _log_tool_event(
+        "save_backend_code_partial",
+        {"project_id": project_id, "files": list(files.keys()), "total_so_far": len(merged)},
+    )
+    return {"ok": True, "project_id": project_id, "files_saved_so_far": len(merged)}
+
+
 def save_backend_code(project_id: str, files: dict[str, str]) -> dict[str, Any]:
     """
     Save generated Spring Boot backend source files.
@@ -93,12 +109,30 @@ def save_backend_code(project_id: str, files: dict[str, str]) -> dict[str, Any]:
     Does NOT advance stage — call save_frontend_code to complete code generation.
     """
     proj = get_or_create_project(project_id, req_session_id=project_id)
-    proj.generated_code_files = files
+    existing = len(proj.generated_code_files or {})
+    print(f"[TOOL_CALL] save_backend_code: existing_files={existing}, new_files={len(files)}")
+    merged = {**(proj.generated_code_files or {}), **files}
+    proj.generated_code_files = merged
     _log_tool_event(
         "save_backend_code",
         {"project_id": project_id, "files": list(files.keys())},
     )
     return {"ok": True, "project_id": project_id, "files_saved": len(files)}
+
+
+def save_frontend_code_partial(project_id: str, files: dict[str, str]) -> dict[str, Any]:
+    """
+    Save Angular frontend files without advancing the project stage.
+    Reserved for future use. Prefer save_frontend_code for the complete frontend generation.
+    """
+    proj = get_or_create_project(project_id, req_session_id=project_id)
+    merged = {**(proj.generated_code_files or {}), **files}
+    proj.generated_code_files = merged
+    _log_tool_event(
+        "save_frontend_code_partial",
+        {"project_id": project_id, "files": list(files.keys()), "total_so_far": len(merged)},
+    )
+    return {"ok": True, "project_id": project_id, "files_saved_so_far": len(merged)}
 
 
 def save_frontend_code(project_id: str, files: dict[str, str]) -> dict[str, Any]:
@@ -123,6 +157,19 @@ def save_frontend_code(project_id: str, files: dict[str, str]) -> dict[str, Any]
         },
     )
     return {"ok": True, "project_id": project_id, "stage": proj.stage.value, "total_files_saved": len(merged)}
+
+
+def get_api_spec(project_id: str) -> dict[str, Any]:
+    """
+    Return the API contract for this project as a compact endpoint list.
+    Call this at the start of frontend code generation to get exact paths and field names.
+    """
+    proj = get_or_create_project(project_id, req_session_id=project_id)
+    _log_tool_event("get_api_spec", {"project_id": project_id, "has_spec": bool(proj.api_spec_summary)})
+    return {
+        "project_id": project_id,
+        "api_spec": proj.api_spec_summary or "API spec not yet available. Use flat paths: /api/<entity-plural>",
+    }
 
 
 def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
