@@ -8,4 +8,4 @@ litellm
 # - Java 17:     brew install openjdk@17
 # - Maven:       brew install maven
 # - Node.js:     preinstalled in Daytona; brew install node for local deploy
-# - Angular CLI: npm install -g @angular/cli@17
+# - Angular CLI: npm install -g @angular/cli@18  (or use local: ./node_modules/.bin/ng)
