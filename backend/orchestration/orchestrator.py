@@ -1,16 +1,22 @@
 import asyncio
+import json
 import logging
+import os
+import re
+import shutil
+import subprocess
+import tempfile
 import uuid
+from pathlib import Path
 from typing import Any
 
 from core.auth import get_oauth_token
 from core.llm import create_litellm
-
-logger = logging.getLogger(__name__)
 from core.runner import run_turn
 from agents.registry import AGENT_FACTORIES
 from orchestration.tools import (
     load_spec,
+    get_api_spec,
     save_nontech_artifacts,
     save_technical_artifacts,
     save_backend_code,
@@ -20,6 +26,8 @@ from orchestration.tools import (
 )
 from orchestration.local_deploy import deploy_locally
 from orchestration.store import Stage, get_or_create_project, create_job, finish_job, fail_job
+
+logger = logging.getLogger(__name__)
 
 
 class Orchestrator:
@@ -45,7 +53,87 @@ class Orchestrator:
         return [save_backend_code]
 
     def _frontend_codegen_tools(self) -> list:
-        return [save_frontend_code]
+        return [get_api_spec, save_frontend_code]
+
+    async def _extract_openapi_spec(self, files: dict[str, str]) -> str | None:
+        """
+        Write backend files to a temp dir, start Spring Boot, fetch /v3/api-docs, then kill the process.
+        Returns the OpenAPI spec as a JSON string, or None if extraction fails.
+        """
+        spec_dir = Path(tempfile.gettempdir()) / "protopilot_spec_extract"
+        proc = None
+        try:
+            if spec_dir.exists():
+                shutil.rmtree(spec_dir)
+            spec_dir.mkdir(parents=True)
+
+            # Write only backend files
+            for rel_path, content in files.items():
+                if rel_path.startswith("backend/"):
+                    dest = spec_dir / rel_path
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    dest.write_text(content, encoding="utf-8")
+
+            java_env = {**os.environ, "JAVA_HOME": "/opt/homebrew/opt/openjdk@17"}
+            log_path = spec_dir / "spec_extract.log"
+            log_file = open(log_path, "w")
+            proc = subprocess.Popen(
+                ["mvn", "spring-boot:run"],
+                cwd=spec_dir / "backend",
+                env=java_env,
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+            )
+
+            # Wait for backend health
+            logger.info("Waiting for backend to start for OpenAPI spec extraction...")
+            for attempt in range(60):
+                await asyncio.sleep(2)
+                try:
+                    result = subprocess.run(
+                        ["curl", "-sf", "http://localhost:8080/actuator/health"],
+                        capture_output=True, timeout=3,
+                    )
+                    if result.returncode == 0:
+                        logger.info("Backend healthy after %d attempts, fetching spec...", attempt + 1)
+                        break
+                except Exception:
+                    pass
+            else:
+                logger.warning("Backend did not start in time for spec extraction")
+                return None
+
+            # Fetch OpenAPI spec
+            result = subprocess.run(
+                ["curl", "-sf", "http://localhost:8080/v3/api-docs"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if result.returncode != 0 or not result.stdout.strip():
+                logger.warning("Failed to fetch OpenAPI spec: %s", result.stderr)
+                return None
+
+            spec = json.loads(result.stdout)
+            logger.info("OpenAPI spec extracted: %d paths", len(spec.get("paths", {})))
+            return json.dumps(spec, indent=2)
+
+        except Exception as e:
+            logger.error("OpenAPI spec extraction failed: %s", e, exc_info=True)
+            return None
+        finally:
+            if proc and proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+            try:
+                log_file.close()
+            except Exception:
+                pass
+            # Kill anything still on 8080
+            pids = subprocess.run(["lsof", "-ti", "tcp:8080"], capture_output=True, text=True).stdout.strip().split()
+            if pids:
+                subprocess.run(["kill", "-9"] + pids, capture_output=True)
 
     async def _handle_wait_approval(self, project_id: str, req_session_id: str, normalized: str) -> dict[str, Any]:
         proj = get_or_create_project(project_id, req_session_id)
@@ -136,7 +224,7 @@ class Orchestrator:
         return {"stage": "CODEGEN_PENDING", "job_id": job_id, "reply": "Code generation started.", "preview_url": None}
 
     async def _run_codegen(self, token: str, project_id: str, req_session_id: str) -> dict:
-        llm = create_litellm(token, model="gemini-2.5-pro-litellm-usw1")
+        llm_pro = create_litellm(token, model="gemini-2.5-pro-litellm-usw1")
         proj = get_or_create_project(project_id, req_session_id)
 
         artifacts_section = [
@@ -145,30 +233,83 @@ class Orchestrator:
             proj.technical_artifacts_md or "(not available)",
         ]
 
-        # First turn: backend
-        backend_prompt = "\n".join([f"project_id={project_id}"] + artifacts_section)
+        # Backend: single batch — generate all files (entities, repos, services, controllers) at once.
+        backend_prompt = "\n".join([
+            f"project_id={project_id}",
+        ] + artifacts_section)
+        logger.info("Backend codegen starting...")
         try:
-            await run_turn(
-                AGENT_FACTORIES["codegen_backend"](llm, tools=self._backend_codegen_tools()),
+            b_reply = await run_turn(
+                AGENT_FACTORIES["codegen_backend"](llm_pro, tools=self._backend_codegen_tools()),
                 session_id=f"{req_session_id}-codegen-backend",
                 message=backend_prompt,
             )
+            logger.info("Backend codegen reply: %s", (b_reply or "")[:500])
         except Exception as e:
-            # Tool may have executed even if final confirmation POST was blocked (e.g. WAF)
-            logger.warning("Backend codegen run_turn error (may be harmless if save_backend_code was called): %s", e)
+            logger.error("Backend codegen exception: %s", e, exc_info=True)
+        proj = get_or_create_project(project_id, req_session_id)
+        logger.info("Backend codegen done. total_files=%d files=%s", len(proj.generated_code_files or {}), list((proj.generated_code_files or {}).keys()))
 
-        # Second turn: frontend
-        frontend_prompt = "\n".join([f"project_id={project_id}"] + artifacts_section)
+        # Extract OpenAPI spec and store as-is for tool-based access by the frontend agent.
+        # Full JSON is returned via get_api_spec() tool — no summarization, no accuracy loss.
+        # WAF is not a concern here because the spec travels via tool response, not request body.
+        logger.info("Extracting OpenAPI spec from backend...")
+        openapi_spec = await self._extract_openapi_spec(proj.generated_code_files or {})
+        if openapi_spec:
+            proj.api_spec_summary = openapi_spec
+            logger.info("OpenAPI spec stored (%d chars)", len(openapi_spec))
+        else:
+            # Fallback: parse controller annotations + DTO fields when Spring Boot fails to start.
+            logger.warning("OpenAPI spec extraction failed, building fallback from annotations")
+            lines = ["API endpoints (inferred from generated controllers):"]
+            files = proj.generated_code_files or {}
+            # Collect DTO fields: map simple class name → [field names]
+            dto_fields: dict[str, list[str]] = {}
+            for path, content in files.items():
+                if not path.endswith(".java"):
+                    continue
+                cls_match = re.search(r'(?:class|record)\s+(\w+Dto)\b', content)
+                if cls_match:
+                    fields = re.findall(r'(?:private|public)\s+\S+\s+(\w+)\s*;', content)
+                    dto_fields[cls_match.group(1)] = fields
+            for path, content in files.items():
+                if not path.endswith("Controller.java"):
+                    continue
+                base = re.search(r'@RequestMapping\("([^"]+)"\)', content)
+                base_path = base.group(1) if base else "/api/unknown"
+                for m in re.finditer(
+                    r'@(GetMapping|PostMapping|PutMapping|DeleteMapping)(?:\("([^"]*)"\))?',
+                    content,
+                ):
+                    verb = m.group(1).replace("Mapping", "").upper()
+                    sub = m.group(2) or ""
+                    entry = f"  {verb} {base_path}{sub}"
+                    # Attach DTO fields for POST/PUT
+                    if verb in ("POST", "PUT"):
+                        for dto_name, fields in dto_fields.items():
+                            if fields:
+                                entry += f"  [body: {', '.join(fields)}]"
+                                break
+                    lines.append(entry)
+            proj.api_spec_summary = "\n".join(lines)
+
+        # Frontend: single batch — agent calls get_api_spec() to fetch API contract via tool.
+        frontend_prompt = "\n".join([
+            f"project_id={project_id}",
+        ] + artifacts_section)
+        logger.info("Frontend codegen starting...")
+        run_id = uuid.uuid4().hex[:8]
         try:
             await run_turn(
-                AGENT_FACTORIES["codegen_frontend"](llm, tools=self._frontend_codegen_tools()),
-                session_id=f"{req_session_id}-codegen-frontend",
+                AGENT_FACTORIES["codegen_frontend"](llm_pro, tools=self._frontend_codegen_tools()),
+                session_id=f"{req_session_id}-codegen-frontend-{run_id}",
                 message=frontend_prompt,
             )
         except Exception as e:
-            logger.warning("Frontend codegen run_turn error (may be harmless if save_frontend_code was called): %s", e)
+            logger.error("Frontend codegen exception: %s", e, exc_info=True)
 
         proj = get_or_create_project(project_id, req_session_id)
+        logger.info("Frontend codegen done. stage=%s total_files=%d", proj.stage, len(proj.generated_code_files or {}))
 
         if proj.stage == Stage.DEPLOY:
             return await self._start_deploy_job(project_id, req_session_id)
