@@ -36,7 +36,9 @@ async def run_turn(agent, session_id: str, message: str) -> str:
         new_message=types.Content(role="user", parts=[types.Part(text=message)]),
         run_config=RunConfig(streaming_mode=StreamingMode.SSE),
     ):
-        if event.content and event.content.parts:
+        # Only collect the final consolidated response to avoid duplicating
+        # incremental SSE chunks that ADK also emits as a final assembled event.
+        if event.is_final_response() and event.content and event.content.parts:
             for part in event.content.parts:
                 if getattr(part, "text", None):
                     chunks.append(part.text)
