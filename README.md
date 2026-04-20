@@ -62,10 +62,16 @@ LITELLM_MODEL=openai/gemini-2.5-pro-litellm-usc1
 LITELLM_API_BASE=https://api-uat.cotality.com/llmservice
 LITELLM_API_KEY=your-litellm-api-key
 
+# Agent model overrides (optional, falls back to LITELLM_MODEL if not set)
+# LITELLM_MODEL_REQUIREMENTS=openai/gemini-2.5-flash-litellm-usw1
+# LITELLM_MODEL_ARTIFACTS=openai/gemini-2.5-flash-litellm-usw1
+# LITELLM_MODEL_CODEGEN=openai/gemini-2.5-pro-litellm-usw1
+
 # Session Configuration
 USER_ID=your-user-id
 APP_NAME=your-app-name
 SESSION_ID=your-session-id
+
 ```
 
 ### Step 5: Run Backend Server
