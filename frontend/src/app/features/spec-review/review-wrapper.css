@@ -49,8 +49,7 @@
   background: #0f172a;
   color: #f1f5f9;
   font-family: 'Inter', sans-serif;
-  height: calc(100vh - 70px);
-  overflow: scroll;
+  height: calc(100vh - 80px);
 }
 
 .preview-container {

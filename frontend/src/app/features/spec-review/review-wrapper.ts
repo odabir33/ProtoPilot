@@ -13,7 +13,7 @@ import { LoaderService } from '../../shared/services/loader.service';
 @Component({
   selector: 'app-review-wrapper',
   standalone: true,
-  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent, LivePreviewComponent],
+  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent],
   templateUrl: './review-wrapper.html',
   styleUrl: './review-wrapper.css'
 })
@@ -38,15 +38,15 @@ export class ReviewWrapperComponent implements OnInit {
       this.http.get('/assets/temp_reqs.json').subscribe({
         next: (data) => {
           this.specService.setSpec(data);
-          this.selectedSection = Object.keys(this.specService.spec())[0];
+          this.selectedSection = Object.keys(this.specService.spec()).sort()[0];
         },
         error: () => {
           this.specService.setSpec(this.tempReqs);
-          this.selectedSection = Object.keys(this.specService.spec())[0];
+          this.selectedSection = Object.keys(this.specService.spec()).sort()[0];
         }
       });
     } else {
-      this.selectedSection = Object.keys(this.spec)[0];
+      this.selectedSection = Object.keys(this.spec).sort()[0];
     }
   }
 
@@ -152,7 +152,7 @@ export class ReviewWrapperComponent implements OnInit {
               allFiles.push(...Object.keys(technicalArtifacts));
             }
             
-            this.files.set(allFiles);
+            this.files.set(allFiles.sort());
             this.selectedFile = allFiles.length > 0 ? allFiles[0] : 'requirements.md';
 
             console.log(reply);
@@ -171,7 +171,7 @@ export class ReviewWrapperComponent implements OnInit {
       return of(null);
     })).subscribe((reply) => {
       if ((reply as any).generated_code_files) {
-        this.specService.setGeneratedCode((reply as any).generated_code_files);
+        this.specService.setGeneratedCode((reply as any).generated_code_files.files);
         
         // Clear files and reset selectedFile to trigger code preview
         this.files.set([]);
@@ -202,7 +202,7 @@ export class ReviewWrapperComponent implements OnInit {
         allFiles.push(...Object.keys(technicalArtifacts));
       }
       
-      this.files.set(allFiles);
+      this.files.set(allFiles.sort());
       this.selectedFile = allFiles.length > 0 ? allFiles[0] : 'requirements.md';
     } else {
       this.files.set([]);

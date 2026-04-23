@@ -46,11 +46,26 @@ export class ChatboxComponent implements OnInit {
             if (response) {
               if ((response as any).spec) {
                 this.specService.setSpec((response as any).spec);
+                // Set artifacts if they exist in response
+                if ((response as any).nontech_artifacts_md) {
+                  this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
+                }
+                if ((response as any).technical_artifacts_md) {
+                  this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
+                }
               }
               this.sendBtnDisabled.set(false);
               this.sendBtnText.set("Send");
               console.log('Response received: ', response);
-              this.chatHistory.update((prev) => [...prev, { type: "system", text: JSON.stringify(response.reply), id: prev.length + 1 }]);
+
+              let systemResponse = "";
+
+              if(typeof response.reply == "string") {
+                systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
+              } else if(response.reply) {
+                systemResponse = response.reply.summary + " " + response.reply.question + " " + response.reply.suggestions;
+              }
+              this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
             }
           });
         }
