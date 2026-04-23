@@ -9,7 +9,6 @@ from orchestration.tools import (
     save_technical_artifacts,
     set_project_stage,
     submit_spec,
-    load_artifacts,
     save_generated_code,
 )
 from orchestration.store import Stage, get_or_create_project
@@ -34,7 +33,7 @@ class Orchestrator:
         return [load_spec, save_nontech_artifacts, save_technical_artifacts, set_project_stage]
 
     def _code_generation_tools(self) -> list:
-        return [load_spec, load_artifacts, save_generated_code, set_project_stage]
+        return [save_generated_code, set_project_stage]
 
     async def _handle_wait_approval(self, project_id: str, req_session_id: str, normalized: str) -> dict[str, Any]:
         proj = get_or_create_project(project_id, req_session_id)
@@ -153,8 +152,8 @@ class Orchestrator:
                 f"project_id={project_id}\n"
                 "## API Documentation\n"
                 f"{api_doc}\n\n"
-                "Generate Angular 18 frontend code based on the API documentation above.\n"
-                "Mock all API calls with realistic sample data matching the API structure.\n"
+                "Generate Angular 17 frontend code based on the API documentation above.\n"
+                "Mock all API calls with realistic sample data — do NOT make real HTTP requests.\n"
                 "Save all files via save_generated_code(project_id, files_json)."
             )
             _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-codegen", message=code_prompt)
