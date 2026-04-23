@@ -145,13 +145,17 @@ class Orchestrator:
 
     async def _run_code_generation(self, token, project_id: str, req_session_id: str) -> dict:
         try:
+            proj = get_or_create_project(project_id, req_session_id)
+            api_doc = (proj.technical_artifacts_md or {}).get("api_documentation.md", "")
+
             code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._code_generation_tools())
             code_prompt = (
                 f"project_id={project_id}\n"
-                "Generate production-ready Angular frontend code now.\n"
-                "Use load_spec to get requirements, load_artifacts to get all artifacts, "
-                "generate modular Angular components and services with mocked API calls, "
-                "then save all code files via save_generated_code(project_id, files_json)."
+                "## API Documentation\n"
+                f"{api_doc}\n\n"
+                "Generate Angular 18 frontend code based on the API documentation above.\n"
+                "Mock all API calls with realistic sample data matching the API structure.\n"
+                "Save all files via save_generated_code(project_id, files_json)."
             )
             _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-codegen", message=code_prompt)
             proj = get_or_create_project(project_id, req_session_id)
