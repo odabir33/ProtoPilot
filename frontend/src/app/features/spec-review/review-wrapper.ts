@@ -33,6 +33,18 @@ export class ReviewWrapperComponent implements OnInit {
     return this.specService.spec();
   }
 
+  hasNonTechArtifacts() {
+    return this.specService.nontech_artifacts_md() && Object.keys(this.specService.nontech_artifacts_md() as any).length > 0;
+  }
+
+  hasTechnicalArtifacts() {
+    return this.specService.technical_artifacts_md() && Object.keys(this.specService.technical_artifacts_md() as any).length > 0;
+  }
+
+  hasGeneratedCode() {
+    return this.specService.generated_code_files() && Object.keys(this.specService.generated_code_files() as any).length > 0;
+  }
+
   ngOnInit() {
     if (Object.keys(this.spec).length === 0) {
       this.http.get('/assets/temp_reqs.json').subscribe({
@@ -105,6 +117,10 @@ export class ReviewWrapperComponent implements OnInit {
     this.selectedSection = section;
   }
 
+  isStackblitzActive() {
+    return this.selectedFile === 'code-preview';
+  }
+
   approveSpec() {
     this.loaderService.start();
     let message = "Here are the final edited specs: " + JSON.stringify(this.spec);
@@ -143,7 +159,7 @@ export class ReviewWrapperComponent implements OnInit {
 
             // Collect all filenames from both artifacts and update files
             const allFiles: string[] = [];
-            const nontechArtifacts = this.specService.nontech_artifacts_md();
+            const nontechArtifacts = this.specService.nontech_artifacts_md() as any;
             if (nontechArtifacts) {
               allFiles.push(...Object.keys(nontechArtifacts));
             }
@@ -184,6 +200,11 @@ export class ReviewWrapperComponent implements OnInit {
         console.error('Code generation failed');
       }
     });
+  }
+
+  viewPrototype() {
+    this.isPreviewMode.set(true);
+    this.selectedFile = 'code-preview';
   }
 
   togglePreview() {
